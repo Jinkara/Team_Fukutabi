@@ -20,6 +20,6 @@ Base.metadata.create_all(bind=engine)  # ★ 初回にSQLiteへテーブル作�
 app.include_router(places_router)
 app.include_router(destinations_router)
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+# @app.get("/health")
+# def health():
+#     return {"status": "ok"}
