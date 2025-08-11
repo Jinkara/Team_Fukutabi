@@ -15,3 +15,5 @@ class Destination(Base):
     lat: Mapped[float] = mapped_column(Float)
     lng: Mapped[float] = mapped_column(Float)
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+from app.models import detour_history  # ← これでテーブルがBaseに登録される
