@@ -1,16 +1,17 @@
 # backend/app/routes/detours.py
 from fastapi import APIRouter, Query, Depends, HTTPException
 from typing import List, Optional
+import math
+from sqlalchemy import select, desc
+from sqlalchemy.orm import Session
+
 from app.schemas.detour import DetourSearchQuery, DetourSuggestion, DetourHistoryItem
 from app.services.geo import minutes_to_radius_km, haversine_km
 from app.services.places_nearby import google_nearby
 from app.services.hotpepper import hotpepper_food  # 無設定なら空配列を返す
 from app.services.events import reverse_geocode_city, connpass_events
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.database import get_db
+from app.db.database import get_db                  # ← 同期Sessionを返す
 from app.models.detour_history import DetourHistory
-from sqlalchemy import select, desc
-import math
 
 router = APIRouter()
 
@@ -18,7 +19,7 @@ router = APIRouter()
 async def search_detours(
     lat: float = Query(...),
     lng: float = Query(...),
-    mode: str = Query(..., regex="^(walk|drive)$"),
+    mode: str = Query(..., regex="^(walk|drive)$"),  # FastAPI新しめなら pattern= でもOK
     minutes: int = Query(..., ge=1, le=120),
     detour_type: str = Query(..., regex="^(food|event|souvenir)$"),
     categories: Optional[List[str]] = Query(None),
@@ -39,14 +40,13 @@ async def search_detours(
         city = await reverse_geocode_city(lat, lng)
         if city:
             evs = await connpass_events(city)
-            # 距離があれば付与してフィルタ
             out = []
             for e in evs:
                 if e.get("lat") and e.get("lng"):
                     d = haversine_km(lat, lng, float(e["lat"]), float(e["lng"]))
-                    if d <= radius_km * 1.5:  # ちょい緩め
+                    if d <= radius_km * 1.5:
                         e["distance_km"] = d
-                        e["duration_min"] = math.ceil(minutes * (d / radius_km)) if radius_km>0 else minutes
+                        e["duration_min"] = math.ceil(minutes * (d / radius_km)) if radius_km > 0 else minutes
                         e["open_now"] = None
                         e["rating"] = None
                         e["parking"] = None
@@ -60,39 +60,53 @@ async def search_detours(
         if "distance_km" not in x:
             x["distance_km"] = haversine_km(lat, lng, x["lat"], x["lng"])
         if "duration_min" not in x:
-            x["duration_min"] = math.ceil((x["distance_km"] / radius_km) * minutes) if radius_km>0 else minutes
+            x["duration_min"] = math.ceil((x["distance_km"] / radius_km) * minutes) if radius_km > 0 else minutes
 
     items.sort(key=lambda x: (x["distance_km"], -(x.get("rating") or 0)))
     top3 = items[:3]
-
     return [DetourSuggestion(**x) for x in top3]
 
 @router.post("/choose", response_model=DetourHistoryItem)
 async def choose_detour(
     detour: DetourSuggestion,
     detour_type: str = Query(..., regex="^(food|event|souvenir)$"),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),                     # ← Session に変更
 ):
     rec = DetourHistory(
         detour_type=detour_type,
-        name=detour.name, lat=detour.lat, lng=detour.lng, note=detour.description
+        name=detour.name,
+        lat=detour.lat,
+        lng=detour.lng,
+        note=detour.description,
     )
     db.add(rec)
-    await db.commit()
-    await db.refresh(rec)
+    db.commit()                                        # ← await なし
+    db.refresh(rec)                                    # ← await なし
     return DetourHistoryItem(
-        id=rec.id, detour_type=rec.detour_type, name=rec.name,
-        lat=rec.lat, lng=rec.lng, chosen_at=rec.chosen_at.isoformat(),
-        note=rec.note
+        id=rec.id,
+        detour_type=rec.detour_type,
+        name=rec.name,
+        lat=rec.lat,
+        lng=rec.lng,
+        chosen_at=rec.chosen_at.isoformat(),           # schemaがdatetimeならそのまま返してもOK
+        note=rec.note,
     )
 
 @router.get("/history", response_model=List[DetourHistoryItem])
-async def list_history(db: AsyncSession = Depends(get_db), limit: int = 50):
-    q = await db.execute(select(DetourHistory).order_by(desc(DetourHistory.id)).limit(limit))
-    rows = q.scalars().all()
+async def list_history(db: Session = Depends(get_db), limit: int = 50):  # ← Session に変更
+    result = db.execute(                                                  # ← 同期実行
+        select(DetourHistory).order_by(desc(DetourHistory.id)).limit(limit)
+    )
+    rows = result.scalars().all()
     return [
         DetourHistoryItem(
-            id=r.id, detour_type=r.detour_type, name=r.name,
-            lat=r.lat, lng=r.lng, chosen_at=r.chosen_at.isoformat(), note=r.note
-        ) for r in rows
+            id=r.id,
+            detour_type=r.detour_type,
+            name=r.name,
+            lat=r.lat,
+            lng=r.lng,
+            chosen_at=r.chosen_at.isoformat(),
+            note=r.note,
+        )
+        for r in rows
     ]
