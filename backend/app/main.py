@@ -5,13 +5,10 @@ load_dotenv()
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-<<<<<<< HEAD
 from fastapi.staticfiles import StaticFiles
-=======
 
 from app.routes.destinations import router as destinations_router
 from app.routes.detours import router as detours_router   # ← 追加
->>>>>>> 008d0ff9f4ef4d155b8b45183462ee4baa46dcca
 
 from app.db.database import engine
 from app.db.models import Base
@@ -35,7 +32,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-<<<<<<< HEAD
 # 3) DBテーブル作成（SQLiteの開発用）
 Base.metadata.create_all(bind=engine)
 
@@ -48,13 +44,11 @@ app.include_router(destinations_router)
 app.include_router(visits_router)
 # guides を作っていれば有効化
 # app.include_router(guides_router)
-
 # 任意のヘルスチェック
 # @app.get("/health")
 # def health():
 #     return {"status": "ok"}
-=======
-# ★ 起動時に一度だけテーブル作成（SQLiteのMVPならこれでOK）
+# # ★ 起動時に一度だけテーブル作成（SQLiteのMVPならこれでOK）
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
@@ -63,7 +57,4 @@ def on_startup():
 app.include_router(destinations_router)
 app.include_router(detours_router, prefix="/detours", tags=["detours"])  # ← 追加
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
->>>>>>> 008d0ff9f4ef4d155b8b45183462ee4baa46dcca
+
