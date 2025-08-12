@@ -54,3 +54,5 @@ class Guide(Base):
     # Destination テーブルとのリレーション
     destination = relationship("Destination", back_populates="guides")
     visit = relationship("VisitHistory", back_populates="guides")
+
+from app.models import detour_history  # ← これでテーブルがBaseに登録される
