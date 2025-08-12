@@ -1,3 +1,4 @@
+from app.core.auth import maybe_require_admin
 from fastapi import APIRouter, Depends, Query, HTTPException, Header
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
