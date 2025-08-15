@@ -9,18 +9,6 @@ KEY = os.getenv("GOOGLE_MAPS_API_KEY") or ""
 REGION = os.getenv("GOOGLE_PLACES_REGION", "jp")
 LANG = os.getenv("GOOGLE_PLACES_LANGUAGE", "ja")
 
-# モック（開発用）
-MOCK_PREDS = [
-    {"description": "清水寺, 京都", "place_id": "mock_kiyomizu"},
-    {"description": "清水寺 成就院", "place_id": "mock_jojuin"},
-    {"description": "清水寺 奥の院", "place_id": "mock_okunoin"},
-]
-MOCK_DETAIL = {
-    "place_id": "mock_kiyomizu",
-    "name": "清水寺",
-    "formatted_address": "京都府京都市東山区清水",
-    "geometry": {"location": {"lat": 34.994856, "lng": 135.785046}},
-}
 
 def _need_key():
     if not KEY:

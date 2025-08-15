@@ -7,7 +7,7 @@ import traceback
 from app.db.database import get_db
 from app.db import models
 from app.schemas.visit import VisitCreate, VisitRead
-from app.schemas.guide import GuideRead
+from backend.app.schemas.guide_content import GuideRead
 from app.services import gpt, tts
 
 try:

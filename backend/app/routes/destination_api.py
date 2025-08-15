@@ -6,8 +6,8 @@ from typing import List
 import os
 from app.db.database import get_db
 from app.db import models
-from app.schemas.destination import DestinationCreate, DestinationRead
-from app.services import places as svc
+from backend.app.schemas.destination_schema import DestinationCreate, DestinationRead
+from backend.app.services import google_places as svc
 
 router = APIRouter(prefix="/destinations", tags=["destinations"])
 
