@@ -57,4 +57,20 @@ def on_startup():
 app.include_router(destinations_router)
 app.include_router(detours_router, prefix="/detours", tags=["detours"])  # ← 追加
 
+# mps3 音声再生のテスト用エンドポイント ※実際の運用では不要、削除可能byからちゃん
+from fastapi.responses import HTMLResponse
 
+@app.get("/test-audio", response_class=HTMLResponse)
+async def test_audio():
+    return """
+    <html>
+        <head><title>音声再生テスト</title></head>
+        <body>
+            <h1>音声再生テストページ</h1>
+            <audio controls>
+                <source src="/media/guides/46ea7704-3f43-4298-9ac2-697bc155e129.mp3" type="audio/mpeg">
+                ブラウザがaudioタグに対応していません。
+            </audio>
+        </body>
+    </html>
+    """

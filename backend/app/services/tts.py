@@ -24,10 +24,10 @@ async def synthesize_to_mp3(text: str, voice: str | None = None) -> Tuple[str, s
         url = f"/media/guides/{filename}"
 
         result = _client.audio.speech.create(
-            model="gpt-4o-mini-tts",
+            model="tts-1",
             voice=voice or "alloy",
             input=text,
-            format="mp3",
+            response_format="mp3",
         )
         with open(out_path, "wb") as f:
             f.write(result.read())
@@ -36,6 +36,7 @@ async def synthesize_to_mp3(text: str, voice: str | None = None) -> Tuple[str, s
 
     except Exception as e:
         # フォールバック：txt で保存（今まで通りの動作を担保）
+        print("TTS ERROR:", repr(e))
         filename = f"{uuid.uuid4()}.txt"
         out_path = GUIDE_DIR / filename
         url = f"/media/guides/{filename}"
