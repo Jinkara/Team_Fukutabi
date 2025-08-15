@@ -7,16 +7,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routes.destinations import router as destinations_router
+from backend.app.routes.destination_api import router as destinations_router
 from app.routes.detours import router as detours_router   # ← 追加
 
 from app.db.database import engine
 from app.db.models import Base
 
 # ルーターは import だけ先にしてOK
-from app.routes.places import router as places_router
-from app.routes.destinations import router as destinations_router
-from app.routes.visits import router as visits_router
+from backend.app.routes.google_places_api import router as places_router
+from backend.app.routes.destination_api import router as destinations_router
+from backend.app.routes.visit_and_guide_api import router as visits_router
 # guides ルーターを作っている場合は↓のコメントを外す
 # from app.routes.guides import router as guides_router
 
@@ -68,7 +68,7 @@ async def test_audio():
         <body>
             <h1>音声再生テストページ</h1>
             <audio controls>
-                <source src="/media/guides/b002f270-3684-4b83-9364-7b5857dcdf7f.mp3" type="audio/mpeg">
+                <source src="/media/guides/46ea7704-3f43-4298-9ac2-697bc155e129.mp3" type="audio/mpeg">
                 ブラウザがaudioタグに対応していません。
             </audio>
         </body>
