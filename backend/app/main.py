@@ -68,7 +68,7 @@ async def test_audio():
         <body>
             <h1>音声再生テストページ</h1>
             <audio controls>
-                <source src="/media/guides/46ea7704-3f43-4298-9ac2-697bc155e129.mp3" type="audio/mpeg">
+                <source src="/media/guides/b002f270-3684-4b83-9364-7b5857dcdf7f.mp3" type="audio/mpeg">
                 ブラウザがaudioタグに対応していません。
             </audio>
         </body>
