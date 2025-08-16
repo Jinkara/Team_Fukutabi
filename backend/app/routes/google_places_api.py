@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from app.services import places as svc
+from app.services import google_places as svc
 
 router = APIRouter(prefix="/places", tags=["places"])
 

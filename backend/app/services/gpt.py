@@ -38,29 +38,28 @@ def _compose_prompt(
 
     return (
         "あなたは観光ガイドです。"
-        f"{tone}、1〜2分（200〜400字）程度のスピーチ台本を作成してください。\n"
-        "構成は【概要→見どころ→歴史/豆知識→おすすめの楽しみ方→アクセス/注意点】。\n"
-        "事実ベースで、固有名詞や数字はできるだけ具体的に。誇張は避けてください。\n"
+        f"{tone}、耳で聞いてわかりやすい400〜600字のナレーション原稿を作成してください。\n"
+        "構成は【概要→見どころ→歴史や豆知識→楽しみ方→注意点】の順に、一続きの話し言葉で書いてください。\n"
+        "※ 郵便番号・電話番号・座標など、読み上げに不要な数値情報は含めないでください。\n"
         f"- 場所名: {name}\n"
-        f"- 住所: {address}\n"
-        f"- 座標: {lat}, {lng}\n"
+        f"- 参考情報（出力には含めない）: 住所={address}, 座標=({lat}, {lng})\n"
         f"{audience}"
-    )
+)
 
-# ---- 旧API互換（必要なら残す）----
-def generate_guide(name: str, address: str, age: int, gender: str, interests: list[str]) -> str:
-    interests_str = "、".join(interests)
-    prompt = (
-        "あなたは観光ガイドです。"
-        f"{age}歳の{gender}向けに、興味が「{interests_str}」であることを考慮して、"
-        f"{name}（所在地：{address}）を楽しく300文字程度で紹介してください。"
-    )
-    resp = client.chat.completions.create(
-        model=MODEL_TEXT,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.8,
-    )
-    return (resp.choices[0].message.content or "").strip()
+# # ---- 旧API互換（必要なら残す）----
+# def generate_guide(name: str, address: str, age: int, gender: str, interests: list[str]) -> str:
+#     interests_str = "、".join(interests)
+#     prompt = (
+#         "あなたは観光ガイドです。"
+#         f"{age}歳の{gender}向けに、興味が「{interests_str}」であることを考慮して、"
+#         f"{name}（所在地：{address}）を楽しく300文字程度で紹介してください。"
+#     )
+#     resp = client.chat.completions.create(
+#         model=MODEL_TEXT,
+#         messages=[{"role": "user", "content": prompt}],
+#         temperature=0.8,
+#     )
+#     return (resp.choices[0].message.content or "").strip()
 
 # ---- visits.py から await で呼ばれるエントリ ----
 async def generate_guide_text(
@@ -85,9 +84,15 @@ async def generate_guide_text(
                     "role": "system",
                     "content": (
                         "あなたは旅先を案内する熟練の観光ガイドです。以下を厳守："
-                        "1) 400〜600字のスピーチ台本。"
-                        "2) 見出し『概要』『見どころ』『歴史・豆知識』『おすすめ』『アクセス・注意点』を必ず含める。"
+                        "1) 300〜400字のスピーチ台本。"
+                        "2) 構成は【概要 → 見どころ → 歴史や豆知識 → 楽しみ方 → 注意点】の順で、一続きのナレーションにしてください（見出しは書かない）。"
                         "3) 作り話や推測の断定は禁止。事実ベースで固有名詞と数字を具体的に。"
+                        "4) 書き言葉ではなく、話し言葉で自然に。"
+                        "5) 誇張やフィクションは禁止。事実ベースで、具体的な地名・年号・施設名などを正確に伝えてください。"
+                        "6) 郵便番号・電話番号・座標・緯度経度など、聞いて意味のない数値情報は含めないでください。"
+                        "7) 難読地名や人名にはふりがなをつけてください。"
+                        "8) 事実に基づき、読者が興味を持つような内容にする。"
+                        ""
                     ),
                 },
                 {"role": "user", "content": prompt},
