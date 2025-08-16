@@ -1,0 +1,165 @@
+/* ========== ページ全体 ========== */
+.page {
+  min-height: 100vh;
+  max-width: 420px;
+  margin: 0 auto;
+  background: var(--muted);
+  padding: 20px 16px calc(56px + env(safe-area-inset-bottom));
+}
+
+/* 上部戻るリンク */
+.topbar { margin: 14px 4px 10px; }
+.backLink { color:#5b5b5b; font-size:14px; text-decoration:none; }
+.backLink:hover { text-decoration:underline; }
+
+/* 見出し */
+.hero { text-align:center; margin:24px 0 22px; }
+.title { font-size:22px; font-weight:900; color:#111; margin:8px 0; }
+.subtitle { font-size:12px; color:#7a7a7a; margin:0; }
+
+/* カード（白背景） */
+.card {
+  background:#fff;
+  border-radius:20px;
+  padding:22px 18px;
+  box-shadow:0 6px 16px rgba(0,0,0,.06);
+  border:1px solid var(--border);
+}
+
+/* セクションブロック */
+.block { margin-top:20px; }
+.block:first-of-type { margin-top:6px; }
+.blockTitle { font-size:13px; color:#333; margin-bottom:12px; }
+
+/* ========== 移動手段（セグメント） ========== */
+.segment {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+.segmentBtn {
+  display:flex; align-items:center; gap:10px; width:100%;
+  border-radius:12px;
+  border:1.8px solid var(--border);
+  background:#fff;
+  padding:14px 16px;
+  font-weight:700; color:#444;
+  transition: box-shadow .12s ease, border-color .12s ease, color .12s ease, transform .08s ease;
+}
+.segmentBtn:hover { transform: translateY(1px); }
+.segmentBtn:focus-visible {
+  outline:2px solid #fff; outline-offset:2px; box-shadow:0 0 0 3px var(--ring-blue);
+}
+.segmentActive {
+  border-color: var(--brand-red);
+  color: var(--brand-red);
+  box-shadow: 0 0 0 2px var(--ring-red) inset;
+}
+.segIconWrap {
+  width:30px; height:30px; border-radius:9999px;
+  background:#fff; display:grid; place-items:center;
+  box-shadow:0 1px 6px rgba(0,0,0,.08); font-size:16px;
+}
+.segText { font-size:14px; }
+
+/* ========== 所要時間（チップ） ========== */
+.chips {
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:12px;
+}
+.chip {
+  padding:13px 0; border-radius:9999px;
+  border:1.8px solid var(--border);
+  background:#fff; font-weight:700; font-size:14px; color:#333;
+  transition: background .12s ease, border-color .12s ease, color .12s ease, transform .08s ease;
+  text-align:center;
+}
+.chip:hover { transform: translateY(1px); }
+.chip:focus-visible {
+  outline:2px solid #fff; outline-offset:2px; box-shadow:0 0 0 3px var(--ring-blue);
+}
+.chipActive {
+  background: var(--brand-red);
+  color:#fff;
+  border-color: var(--brand-red);
+}
+
+/* ========== カテゴリ ========== */
+.catGrid {
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:14px;
+}
+
+.catCard {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:8px; border-radius:16px; padding:14px 10px; text-align:center;
+  border:1px solid var(--border);
+  box-shadow:0 4px 12px rgba(0,0,0,.05);
+  transition: filter .12s ease, transform .08s ease, box-shadow .12s ease;
+}
+.catCard:hover { filter:brightness(1.01); }
+.catCard:active { transform: translateY(1px); }
+
+/* アイコン表示 */
+.catIcon {
+  display:grid; place-items:center;
+  width:36px; height:36px; border-radius:9999px;
+  background:#fff; font-size:18px;
+}
+
+/* ラベル */
+.catLabel { font-size:12px; font-weight:800; line-height:1.2; }
+
+/* 色：ローカル=赤 / グルメ=緑 / イベント=青
+   まずはフェールバック（単色）、対応ブラウザでは color-mix のグラデでやさしく */
+.catLocal  {
+  background: var(--bg-red-weak);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand-red) 8%, #fff) 0%,
+    color-mix(in srgb, var(--brand-red) 16%, #fff) 100%
+  );
+  color: var(--brand-red);
+}
+.catGourmet  {
+  background: var(--bg-green-weak);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand-green) 8%, #fff) 0%,
+    color-mix(in srgb, var(--brand-green) 16%, #fff) 100%
+  );
+  color: var(--brand-green);
+}
+.catEvent  {
+  background: var(--bg-blue-weak);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand-blue) 8%, #fff) 0%,
+    color-mix(in srgb, var(--brand-blue) 16%, #fff) 100%
+  );
+  color: var(--brand-blue);
+}
+
+/* 選択時の枠色も各色に合わせる（リングトークン利用） */
+.catActiveLocal   { box-shadow: 0 0 0 2px var(--ring-red)   inset; }
+.catActiveGourmet { box-shadow: 0 0 0 2px var(--ring-green) inset; }
+.catActiveEvent   { box-shadow: 0 0 0 2px var(--ring-blue)  inset; }
+
+/* ========== 検索ボタン ========== */
+.searchBtn {
+  margin-top:24px; width:100%; height:56px; border-radius:9999px;
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  background: var(--brand-black); color:#fff; font-weight:900; letter-spacing:.2px; border:none;
+  transition: filter .12s ease, transform .08s ease;
+}
+.searchBtn:hover { filter: brightness(1.03); }
+.searchBtn:active { transform: translateY(1px); }
+.searchBtn:focus-visible { outline:2px solid #fff; outline-offset:2px; box-shadow:0 0 0 3px var(--ring-blue); }
+.searchIcon { font-size:16px; }
+
+/* 無効時も黒のまま。ポインタだけ変える（任意） */
+.searchBtn[disabled] { opacity:1; cursor:not-allowed; }
+
+/* ========== 小画面調整 ========== */
+@media (max-width: 360px) {
+  .title { font-size:20px; }
+  .chip { font-size:13px; padding:12px 0; }
+}
