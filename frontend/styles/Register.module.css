@@ -1,0 +1,118 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 24px;
+  background-color: #fff;
+  text-align: center;
+}
+
+/* ✅ ユーザー登録タイトル */
+.pageTitle {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--brand-red);
+  margin-bottom: 4px;
+}
+.logo span {
+  color: var(--brand-black);
+}
+
+.caption {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 32px;
+}
+
+.form {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.label {
+  font-size: 13px;
+  color: #333;
+  margin-top: 12px;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+  background-color: #f9f9f9;
+  outline: none;
+}
+.input:focus {
+  border-color: var(--brand-red);
+  background-color: #fff;
+}
+
+.passwordWrapper {
+  position: relative;
+}
+
+.eyeIcon {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  opacity: 0.6;
+}
+.eyeIcon:hover {
+  opacity: 1;
+}
+
+.checkboxWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin: 12px 0;
+}
+
+.registerButton {
+  background-color: var(--brand-black);
+  color: white;
+  font-weight: bold;
+  padding: 12px;
+  border: none;
+  border-radius: 999px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 8px;
+}
+.registerButton:hover {
+  background-color: #333;
+}
+
+/* ✅ 改行ありのログイン案内 */
+.footer {
+  margin-top: 32px;
+  text-align: center;
+}
+.footerText {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+.link {
+  color: var(--brand-red);
+  font-weight: bold;
+  cursor: pointer;
+}
