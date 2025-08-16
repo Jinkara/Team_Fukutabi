@@ -1,0 +1,104 @@
+/* login.module.css */
+.container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 24px;
+  background-color: #fff;
+  text-align: center;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--brand-red);
+  margin-bottom: 4px;
+}
+
+.logo span {
+  color: var(--brand-black);
+}
+
+.caption {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 32px;
+}
+
+.form {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.label {
+  font-size: 13px;
+  color: #333;
+  margin-top: 12px;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+  background-color: #f9f9f9;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--brand-red);
+  background-color: #fff;
+}
+
+.passwordWrapper {
+  position: relative;
+}
+
+.toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 16px;
+  user-select: none;
+}
+
+.loginButton {
+  background-color: var(--brand-black);
+  color: white;
+  font-weight: bold;
+  padding: 12px;
+  border: none;
+  border-radius: 999px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 24px;
+}
+
+.loginButton:hover {
+  background-color: #333;
+}
+
+.footer {
+  margin-top: 32px;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+}
+
+.link {
+  display: block;
+  color: var(--brand-red);
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 4px;
+}
