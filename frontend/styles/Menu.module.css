@@ -1,0 +1,108 @@
+/* ====== Layout / Base ====== */
+.container {
+  min-height: 100vh;
+  max-width: 420px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 20px 16px 72px; /* 下部に少し余白（タップしやすさ） */
+}
+
+/* ====== Brand ====== */
+.brand { font-weight: 700; font-size: 18px; letter-spacing: .2px; }
+.brandSerendi { color: var(--brand-red); }
+.brandGo { color: var(--brand-black); }
+
+/* ====== Hero ====== */
+.hero { text-align: center; margin: 16px 0 12px; }
+.heading { font-size: 24px; margin: 8px 0 6px; color: #111; font-weight: 700; }
+.subheading { font-size: 12px; color: #666; margin: 0; }
+
+/* ====== CTA Buttons ====== */
+.cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 16px;
+  padding: 16px 16px;
+  color: #fff;
+  text-decoration: none;
+  width: 100%;
+  margin: 20px 0 0;
+  box-shadow: 0 10px 18px rgba(0,0,0,.12);
+  transition: transform .08s ease, box-shadow .12s ease, filter .12s ease;
+}
+.red { background: var(--brand-red); }
+.blue { background: var(--brand-blue); }
+
+.cta:hover { filter: brightness(1.02); }
+.cta:active { transform: translateY(1px); }
+.cta:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.8), 0 0 0 6px rgba(0,0,0,.12);
+}
+
+/* Icon bubble inside CTA */
+.iconWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  flex: 0 0 auto;
+}
+.icon { font-size: 20px; line-height: 1; }
+.red .icon { color: var(--brand-red); }
+.blue .icon { color: var(--brand-blue); }
+
+/* CTA text */
+.ctaText { display: flex; flex-direction: column; line-height: 1.25; }
+.ctaTitle { font-size: 15px; font-weight: 700; letter-spacing: .2px; }
+.ctaDesc { font-size: 12px; opacity: .95; margin-top: 4px; }
+
+/* ====== History Section ====== */
+.historySection { margin-top: 28px; text-align: center; }
+.historyHeading { font-size: 18px; color: #111; margin: 4px 0 14px; font-weight: 700; }
+
+.historyCard {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: #333;
+  border-radius: 14px;
+  padding: 12px 18px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.06);
+  transition: transform .08s ease, box-shadow .12s ease, filter .12s ease;
+}
+.historyCard:hover { filter: brightness(1.01); }
+.historyCard:active { transform: translateY(1px); }
+.historyCard:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--brand-blue);
+}
+
+.historyIconWrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: var(--muted);
+  display: grid;
+  place-items: center;
+}
+.lockIcon { color: #777; }
+.historyLabel { font-size: 12px; }
+
+/* ====== Small screens tweak ====== */
+@media (max-width: 360px) {
+  .heading { font-size: 22px; }
+  .cta { padding: 14px 14px; }
+  .ctaTitle { font-size: 14px; }
+  .ctaDesc { font-size: 11px; }
+}

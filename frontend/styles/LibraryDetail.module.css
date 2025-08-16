@@ -1,0 +1,73 @@
+.page { max-width: 420px; margin: 0 auto; padding: 12px 16px 40px; background: var(--muted); min-height: 100vh; }
+.topbar { margin: 4px 0 10px; }
+.backLink { color:#555; font-size:14px; text-decoration:none; }
+.backLink:hover { text-decoration:underline; }
+
+.headerCard {
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px;
+  box-shadow:0 6px 14px rgba(0,0,0,.04);
+  margin-bottom:12px;
+}
+
+/* 枠の強調色もトークン化 */
+.redBorder  { box-shadow: 0 0 0 2px var(--ring-red)  inset; }
+.blueBorder { box-shadow: 0 0 0 2px var(--ring-blue) inset; }
+
+.titleRow { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
+.title    { font-size:18px; font-weight:900; color:#111; margin:0; }
+.meta     { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+
+/* バッジ */
+.badge      { font-size:11px; padding:6px 8px; border-radius:9999px; background:#f3f4f6; color:#374151; font-weight:800; }
+.redBadge   { background: var(--bg-red-weak);   color: var(--brand-red); }
+.blueBadge  { background: var(--bg-blue-weak);  color: var(--brand-blue); }
+.greenBadge { background: var(--bg-green-weak); color: var(--brand-green); }
+
+.desc { margin-top:8px; color:#444; font-size:12px; line-height:1.6; }
+
+.actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.primaryBtn {
+  border:none; height:44px; padding:0 14px; border-radius:12px;
+  background:var(--brand-black); color:#fff; font-weight:900;
+}
+.ghostBtn {
+  display:inline-flex; align-items:center; height:44px; padding:0 14px;
+  border:1px solid var(--border); border-radius:12px; background:#fff; color:#111;
+  font-weight:900; text-decoration:none;
+}
+
+.sectionHeading { font-size:14px; font-weight:800; margin:14px 2px 8px; color:#111; }
+.cards { display:grid; gap:10px; }
+.card {
+  display:grid; grid-template-columns:48px 1fr; gap:12px;
+  background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px;
+  box-shadow:0 6px 14px rgba(0,0,0,.04);
+}
+.icon { display:grid; place-items:center; width:48px; height:48px; border-radius:12px; font-size:20px; }
+
+.cardBody  { display:grid; gap:6px; }
+.cardTitle { font-weight:800; color:#111; font-size:14px; }
+.cardGenre { color:#7a7a7a; font-size:12px; }
+.cardDesc  { color:#444; font-size:12px; }
+
+.smallVoiceBtn {
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:10px;
+  padding:6px 10px;
+  font-weight:800;
+  font-size:12px;
+}
+
+.empty {
+  margin-top:16px;
+  background:#fff;
+  border:1px dashed var(--border);
+  border-radius:12px;
+  padding:16px;
+  color:#555;
+  text-align:center;
+}
