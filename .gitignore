@@ -3,3 +3,4 @@
 /backend/app/**/__pycache__/
 /backend/.env
 /backend/serendigo.db
+/backend/secret/

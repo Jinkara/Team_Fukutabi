@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.db import models
-from backend.app.schemas.guide_content import GuideCreate, GuideRead
+from app.schemas.guide_content import GuideCreate, GuideRead
 from app.services import gpt, tts
 from app.core.auth import maybe_require_admin
 
