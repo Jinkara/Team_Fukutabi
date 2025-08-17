@@ -1,8 +1,20 @@
 # app/main.py
 from dotenv import load_dotenv
-load_dotenv()
-
+import pathlib
 import os
+# backend/.env を明示的に読み込む
+env_path = pathlib.Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
+
+# .env の変数から読み込み
+cred_path_raw = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+cred_path_abs = pathlib.Path(cred_path_raw).resolve() if cred_path_raw else None
+
+# .env の値を優先して OS 環境変数に上書き
+if cred_path_raw:
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cred_path_abs)
+else:
+    print("⚠️ .envに GOOGLE_APPLICATION_CREDENTIALS が定義されていません")
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -54,7 +66,7 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
 
 # ルーター登録
-app.include_router(destinations_router)
+# app.include_router(destinations_router)　# ← 既に上で登録済みなので不要
 app.include_router(detours_router, prefix="/detours", tags=["detours"])  # ← 追加
 
 # mps3 音声再生のテスト用エンドポイント ※実際の運用では不要、削除可能byからちゃん
