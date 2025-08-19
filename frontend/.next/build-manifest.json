@@ -32,30 +32,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/detour.js"
     ],
-    "/guide": [
+    "/detour-play": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/guide.js"
-    ],
-    "/library": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/library.js"
-    ],
-    "/login": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/login.js"
-    ],
-    "/menu": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/menu.js"
-    ],
-    "/register": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/register.js"
+      "static/chunks/pages/detour-play.js"
     ]
   },
   "ampFirstPages": []
