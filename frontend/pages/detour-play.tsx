@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Layout from "../components/Layout";
-import Guard from "../components/Guard";
+//import Guard from "../components/Guard";
 import styles from "../styles/DetourPlay.module.css";
 
 import {
@@ -134,7 +134,7 @@ export default function DetourPlay() {
   const colorClass = (cat: Category) => styles[colorNameByCategory(cat)];
 
   return (
-    <Guard>
+    //<Guard>
       <Layout title="寄り道ガイド">
         <main className={styles.page}>
           <div className={styles.topbar}>
@@ -216,6 +216,6 @@ export default function DetourPlay() {
           </div>
         </main>
       </Layout>
-    </Guard>
+    //</Guard>
   );
 }

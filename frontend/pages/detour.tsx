@@ -2,7 +2,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import Layout from "../components/Layout";
-import Guard from "../components/Guard";
+//import Guard from "../components/Guard";
 import styles from "../styles/Detour.module.css";
 
 type Mode = "walk" | "drive";
@@ -28,7 +28,7 @@ export default function Detour() {
   };
 
   return (
-    <Guard>
+    //<Guard>
       <Layout title="寄り道ガイド">
         <main className={styles.page}>
           <div className={styles.topbar}>
@@ -122,7 +122,7 @@ export default function Detour() {
           </section>
         </main>
       </Layout>
-    </Guard>
+    //</Guard>
   );
 }
 

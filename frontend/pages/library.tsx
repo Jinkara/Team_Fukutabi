@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
-import Guard from "@/components/Guard";
+//import Guard from "@/components/Guard";
 import { apiGet } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import styles from "@/styles/Library.module.css";
@@ -76,7 +76,7 @@ export default function Library() {
     !sections[0].items.length && !sections[1].items.length && !sections[2].items.length;
 
   return (
-    <Guard>
+    //<Guard>
       <Layout title="ガイド履歴">
         <main className={styles.page}>
           {/* ← ホームへ戻る */}
@@ -146,6 +146,6 @@ export default function Library() {
           )}
         </main>
       </Layout>
-    </Guard>
+    //</Guard>
   );
 }
