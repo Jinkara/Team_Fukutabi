@@ -29,6 +29,10 @@ from app.routes.destination_api import router as destinations_router      # ← 
 from app.routes.visit_and_guide_api import router as visits_router
 from app.routes.detours import router as detours_router
 
+# ★ 追加：ルータをインポートきたな
+from app.routers import detour_adapter
+from app.routers import detour_guide
+
 # DB初期化（同期）
 from app.db.database import init_db
 
@@ -98,3 +102,7 @@ def __db_info():
 def __db_tables():
     insp = inspect(engine)
     return {"tables": insp.get_table_names()}
+
+# ★ 追加：ルータを登録きたな
+app.include_router(detour_adapter.router)  # → /detour/search が生える
+app.include_router(detour_guide.router)    # → /detour-guide/search が生える

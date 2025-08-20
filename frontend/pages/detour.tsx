@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useState, useEffect } from "react";  // ← useEffect を追加byきたな
 import Layout from "../components/Layout";
 //import Guard from "../components/Guard";
 import styles from "../styles/Detour.module.css";
@@ -17,13 +17,41 @@ export default function Detour() {
   const [duration, setDuration] = useState<Dur | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
 
-  const canGo = mode !== null && duration !== null && category !== null;
+ // 🌍 追加：位置情報取得byきたな
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(pos.coords.latitude);
+        setLng(pos.coords.longitude);
+      },
+      (err) => {
+        console.warn("位置情報が取得できませんでした", err);
+      }
+    );
+  }, []);
+
+  const canGo =
+    mode !== null &&
+    duration !== null &&
+    category !== null &&
+    lat !== null &&
+    lng !== null;
 
   const go = () => {
     if (!canGo) return;
     router.push({
       pathname: "/detour-play",
-      query: { mode: mode as Mode, duration: duration as Dur, category: category as Category },
+      query: {
+        mode: mode as Mode,
+        duration: duration as Dur,
+        category: category as Category,
+        lat: lat?.toFixed(6),     // ← クエリに緯度経度を含める
+        lng: lng?.toFixed(6),
+      },
     });
   };
 

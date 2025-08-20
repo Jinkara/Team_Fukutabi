@@ -4,7 +4,6 @@ from typing import List, Optional
 import math
 from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
-
 from app.schemas.detour import DetourSearchQuery, DetourSuggestion, DetourHistoryItem
 from app.services.geo import minutes_to_radius_km, haversine_km
 from app.services.places_nearby import google_nearby
@@ -12,6 +11,8 @@ from app.services.hotpepper import hotpepper_food  # 無設定なら空配列を
 from app.services.events import reverse_geocode_city, connpass_events
 from app.db.database import get_db                  # ← 同期Sessionを返す
 from app.models.detour_history import DetourHistory
+import uuid
+from datetime import datetime
 
 router = APIRouter()
 
@@ -62,9 +63,32 @@ async def search_detours(
         if "duration_min" not in x:
             x["duration_min"] = math.ceil((x["distance_km"] / radius_km) * minutes) if radius_km > 0 else minutes
 
+    # ソートとトップ3選定
     items.sort(key=lambda x: (x["distance_km"], -(x.get("rating") or 0)))
     top3 = items[:3]
-    return [DetourSuggestion(**x) for x in top3]
+
+    # DetourSuggestion に整形
+    results = []
+    for x in top3:
+        results.append(DetourSuggestion(
+            id=str(uuid.uuid4()),
+            name=x["name"],
+            description=x.get("description"),
+            lat=x["lat"],
+            lng=x["lng"],
+            distance_km=x["distance_km"],
+            duration_min=x["duration_min"],
+            rating=x.get("rating"),
+            open_now=x.get("open_now"),
+            opening_hours=x.get("opening_hours"),
+            parking=x.get("parking"),
+            source=x.get("source") or "google",  # デフォルト google
+            url=x.get("url"),
+            photo_url=x.get("photo_url"),
+            created_at=datetime.utcnow().isoformat() # ← 文字列で渡す
+        ))
+
+    return results
 
 @router.post("/choose", response_model=DetourHistoryItem)
 async def choose_detour(

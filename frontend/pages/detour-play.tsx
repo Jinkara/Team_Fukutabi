@@ -12,9 +12,11 @@ import {
   type Category,
   type Mode,
   type Dur,
+  normalizeSpot, // ★ 追加：api.ts の normalizeSpot を使う
 } from "../lib/api";
 import { loadProfile } from "../lib/auth";
 import { colorNameByCategory, fmtDistance, fmtEta } from "../lib/places";
+import { DetourSuggestion } from "@/types";
 
 export default function DetourPlay() {
   const router = useRouter();
@@ -38,7 +40,7 @@ export default function DetourPlay() {
   const profile = useMemo(() => loadProfile(), []);
 
   // 表示用
-  const [spots, setSpots] = useState<Spot[] | null>(null);
+  const [spots, setSpots] = useState<Spot[]>([]); // Spot[] に統一
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -67,54 +69,68 @@ export default function DetourPlay() {
     setErrorMsg(null);
 
     try {
-      const { spots } = await recommendSpots({
+      // state の spots と被らないよう rawSpots にリネーム
+      const { spots: rawSpots } = await recommendSpots({
         mode,
-        duration_min: duration,
-        category: selectedCategory,
-        user: profile ? { gender: profile.gender, age_range: profile.ageRange } : null,
-        exclude_ids: excludeIds,
+        duration: duration,                       // ← サーバは minutes を期待
+        category: selectedCategory ?? undefined, // ← null を送らない
+        //user: profile ? { gender: profile.gender, age_range: profile.ageRange } : null,
+        exclude_ids: excludeIds.join(","), // ここは文字列でOK
         seed: Math.floor(Math.random() * 1e6),
         radius_m: opts?.widen ? radius + 500 : radius,
+        lat: String(router.query.lat ?? "35.681236"),
+        lng: String(router.query.lng ?? "139.767125"),
       });
 
-      // widen 指定時は半径を実際に更新
-      if (opts?.widen) setRadius(r => r + 500);
+      if (opts?.widen) setRadius((r) => r + 500);
 
-      setSpots(spots);
-      setExcludeIds((ids) => [...ids, ...spots.map((s) => s.id)]);
-    } catch (e) {
-      setErrorMsg("接続できなかったためサンプルデータを表示しています。");
-      // 簡易モック
-      const mock: Spot[] = [
+      // ★ ここで正規化：any/DetourSuggestion/Spot どれでも normalizeSpot が Spot に整形
+      const normalized: Spot[] = (rawSpots as any[]).map(normalizeSpot);
+      setSpots(normalized);
+      setExcludeIds((ids) => [...ids, ...normalized.map((s) => s.id)]);
+    } catch (e: any) {
+      setErrorMsg(`接続できませんでした: ${e?.message ?? e}.サンプルデータを表示しています。`);
+
+      // 簡易モック（DetourSuggestion 形）
+      const mock = [
         {
-          id: "local-1",
+          id: "1",
           name: "喫茶店カフェ Serendipity",
-          genre: "カフェ・コーヒー",
-          desc: "老舗の自家焙煎コーヒーが自慢の隠れ家カフェ。レトロな雰囲気で地元の人にも愛される名店です。",
-          lat: 0, lng: 0, eta_min: 15, distance_m: 350, category: "local",
+          description: "老舗の自家焙煎コーヒーが自慢の隠れ家カフェ。",
+          lat: 0,
+          lng: 0,
+          distance_km: 0.35,
+          duration_min: 15,
+          source: "google",
         },
         {
-          id: "gourmet-1",
+          id: "2",
           name: "アンティーク雑貨店",
-          genre: "雑貨・インテリア",
-          desc: "ヨーロッパから直輸入した家具や食器が並ぶ注目雑貨店。一点物のヴィンテージ品に出会えます。",
-          lat: 0, lng: 0, eta_min: 8, distance_m: 650, category: "gourmet",
+          description: "ヨーロッパから直輸入した家具や食器が並ぶ注目雑貨店。",
+          lat: 0,
+          lng: 0,
+          distance_km: 0.65,
+          duration_min: 8,
+          source: "google",
         },
         {
-          id: "event-1",
+          id: "3",
           name: "小さなアートギャラリー",
-          genre: "アート・ギャラリー",
-          desc: "若手作家の企画展を展示。週末にはオーナーが作品の背景を説明してくれる語り部ツアーも。",
-          lat: 0, lng: 0, eta_min: 9, distance_m: 450, category: "event",
+          description: "若手作家の企画展を展示するギャラリーです。",
+          lat: 0,
+          lng: 0,
+          distance_km: 0.45,
+          duration_min: 9,
+          source: "google",
         },
       ];
-      setSpots(mock);
-      setExcludeIds((ids) => [...ids, ...mock.map((s) => s.id)]);
+
+      // ★ モックも同じく正規化して Spot[] へ
+      const fallback: Spot[] = mock.map(normalizeSpot as (x: any) => Spot);
+      setSpots(fallback);
+      setExcludeIds((ids) => [...ids, ...fallback.map((s) => s.id)]);
     } finally {
       setLoading(false);
-      if (typeof window !== "undefined") {
-        document.getElementById("list-top")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
     }
   }
 
@@ -135,38 +151,46 @@ export default function DetourPlay() {
 
   return (
     //<Guard>
-      <Layout title="寄り道ガイド">
-        <main className={styles.page}>
-          <div className={styles.topbar}>
-            <Link href="/detour" legacyBehavior><a className={styles.backLink}>← 条件へ戻る</a></Link>
+    <Layout title="寄り道ガイド">
+      <main className={styles.page}>
+        <div className={styles.topbar}>
+          <Link href="/detour" legacyBehavior>
+            <a className={styles.backLink}>← 条件へ戻る</a>
+          </Link>
+        </div>
+
+        <section className={styles.hero}>
+          <h1 className={styles.title}>寄り道ガイド</h1>
+          <p className={styles.subtitle}>おすすめスポットをピックアップしました</p>
+        </section>
+
+        {/* マップ（プレースホルダ） */}
+        <section className={styles.mapBox}>
+          <div className={styles.mapPlaceholder}>マップエリア（地図が表示される）</div>
+          <div className={styles.legend}>
+            <span className={`${styles.dot} ${styles.red}`} />
+            <span>ローカル名所</span>
+            <span className={`${styles.dot} ${styles.green}`} />
+            <span>ご当地グルメ</span>
+            <span className={`${styles.dot} ${styles.blue}`} />
+            <span>イベント</span>
           </div>
+        </section>
 
-          <section className={styles.hero}>
-            <h1 className={styles.title}>寄り道ガイド</h1>
-            <p className={styles.subtitle}>おすすめスポットをピックアップしました</p>
-          </section>
+        <div id="list-top" />
+        <section className={styles.cards}>
+          {errorMsg && <div className={styles.notice}>{errorMsg}</div>}
 
-          {/* マップ（プレースホルダ） */}
-          <section className={styles.mapBox}>
-            <div className={styles.mapPlaceholder}>マップエリア（地図が表示される）</div>
-            <div className={styles.legend}>
-              <span className={`${styles.dot} ${styles.red}`} /><span>ローカル名所</span>
-              <span className={`${styles.dot} ${styles.green}`} /><span>ご当地グルメ</span>
-              <span className={`${styles.dot} ${styles.blue}`} /><span>イベント</span>
-            </div>
-          </section>
+          {loading && (
+            <>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className={`${styles.card} ${styles.skeleton}`} />
+              ))}
+            </>
+          )}
 
-          <div id="list-top" />
-          <section className={styles.cards}>
-            {errorMsg && <div className={styles.notice}>{errorMsg}</div>}
-
-            {loading && (
-              <>
-                {[0,1,2].map(i => <div key={i} className={`${styles.card} ${styles.skeleton}`} />)}
-              </>
-            )}
-
-            {!loading && spots?.map((s) => (
+          {!loading &&
+            spots?.map((s) => (
               <article key={s.id} className={styles.card}>
                 <div className={`${styles.cardIcon} ${colorClass(s.category)}`}>
                   {s.category === "local" ? "📍" : s.category === "gourmet" ? "🍜" : "📅"}
@@ -197,25 +221,25 @@ export default function DetourPlay() {
               </article>
             ))}
 
-            {/* 空状態（説明のみ。ボタンはフッターに1つだけ） */}
-            {!loading && (!spots || spots.length === 0) && (
-              <div className={styles.empty}>
-                条件に合うスポットが見つかりませんでした。検索条件を少し緩めて再検索します。
-              </div>
-            )}
-          </section>
+          {/* 空状態（説明のみ。ボタンはフッターに1つだけ） */}
+          {!loading && (!spots || spots.length === 0) && (
+            <div className={styles.empty}>
+              条件に合うスポットが見つかりませんでした。検索条件を少し緩めて再検索します。
+            </div>
+          )}
+        </section>
 
-          {/* 単一ボタン + 次の挙動ヒント */}
-          <div className={styles.footer}>
-            <button className={styles.moreBtn} onClick={onPrimaryClick} disabled={loading}>
-              {loading ? "読み込み中…" : "＋ 新しいスポットを探す"}
-            </button>
-            {!loading && nextWillWiden && (
-              <div className={styles.nextHint}>次は半径を広げて探します（+500m）</div>
-            )}
-          </div>
-        </main>
-      </Layout>
+        {/* 単一ボタン + 次の挙動ヒント */}
+        <div className={styles.footer}>
+          <button className={styles.moreBtn} onClick={onPrimaryClick} disabled={loading}>
+            {loading ? "読み込み中…" : "＋ 新しいスポットを探す"}
+          </button>
+          {!loading && nextWillWiden && (
+            <div className={styles.nextHint}>次は半径を広げて探します（+500m）</div>
+          )}
+        </div>
+      </main>
+    </Layout>
     //</Guard>
   );
 }

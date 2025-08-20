@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import Integer, String, Float, DateTime
 from datetime import datetime
-from app.db.models import Base  # あなたの構成に合わせてmodels側のBaseを使用
+from app.db.database import Base  # あなたの構成に合わせてmodels側のBaseを使用
 
 class DetourHistory(Base):
     __tablename__ = "detour_history"

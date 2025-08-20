@@ -4,3 +4,5 @@
 /backend/.env
 /backend/serendigo.db
 /backend/secret/
+/backend/secret.json
+/frontend/node_modules/

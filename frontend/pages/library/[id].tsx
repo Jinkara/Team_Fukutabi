@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
-import Guard from "@/components/Guard";
+//import Guard from "@/components/Guard";
 import { apiGet } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import styles from "@/styles/LibraryDetail.module.css";
@@ -58,7 +58,7 @@ export default function LibraryDetailPage() {
     data?.guide_type === "talk" ? styles.redBadge : styles.blueBadge;
 
   return (
-    <Guard>
+    //<Guard>
       <Layout title="履歴の詳細">
         <main className={styles.page}>
           <div className={styles.topbar}>
@@ -174,6 +174,6 @@ export default function LibraryDetailPage() {
           )}
         </main>
       </Layout>
-    </Guard>
+    //</Guard>
   );
 }
