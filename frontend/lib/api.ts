@@ -1,4 +1,5 @@
 // lib/api.ts
+import { DetourSuggestion } from "@/types";//きたな
 
 // ===== 型 =====
 export type Mode = "walk" | "drive";
@@ -79,10 +80,10 @@ const apiPostRaw = <T>(path: string, body: any, token?: string, init?: RequestIn
   request<T>("POST", path, token, body, init);
 
 // ====== recommend: POST /detour/recommend ======
-const RECOMMEND_EP = "/detour/recommend";
+const RECOMMEND_EP = "/detour/search"; //きたな
 
-// サーバーのキー揺れを吸収
-function normalizeSpot(raw: any): Spot {
+// サーバーのキー揺れを吸収（きたな）
+export function normalizeSpot(raw: any): Spot {
   const meters =
     typeof raw.distance_m === "number"
       ? raw.distance_m
@@ -105,12 +106,66 @@ function normalizeSpot(raw: any): Spot {
     category,
   };
 }
+// DetourSuggestion → Spot 変換（型揃え）きたな
+function toSpot(s: DetourSuggestion): Spot {
+  // eta_text から分数と距離(m)を抽出
+  const etaText = (s as any).eta_text as string | undefined; // "徒歩約9分・350m" 等
+  const minMatch = etaText?.match(/(\d+)\s*分/);
+  const meterMatch = etaText?.match(/(\d+)\s*m/);
+  const etaMinFromText = minMatch ? Number(minMatch[1]) : undefined;
+  const distMFromText = meterMatch ? Number(meterMatch[1]) : undefined;
 
-export async function recommendSpots(payload: RecommendRequest, token?: string): Promise<RecommendResponse> {
-  const raw = await apiPostRaw<any>(RECOMMEND_EP, payload, token);
-  const list = Array.isArray(raw?.spots) ? raw.spots.map(normalizeSpot) : [];
-  return { spots: list };
+  return {
+    id: String(s.id),
+    name: s.name,
+    genre: (s as any).genre ?? "",
+    desc: (s as any).desc ?? (s as any).description ?? "",
+    lat: (s as any).lat,
+    lng: (s as any).lng,
+    eta_min:
+      (s as any).eta_min ??
+      (s as any).duration_min ??
+      etaMinFromText ??
+      0,
+    distance_m:
+      (s as any).distance_m ??
+      (typeof (s as any).distance_km === "number"
+        ? Math.round((s as any).distance_km * 1000)
+        : typeof (s as any).distance === "number"
+        ? Number((s as any).distance)
+        : distMFromText ?? 0),
+    category: ((s as any).category ?? "local") as Category,
+  };
 }
+
+// ====== recommendSpots: GET /detour-guide/search ======きたな修正
+
+export async function recommendSpots(
+  params: Record<string, string | number>
+): Promise<{ spots: Spot[] }> {
+  const payload: Record<string, string | number | undefined> = {
+    mode: params.mode,
+    duration: (params as any).duration ?? (params as any).minutes ?? (params as any).duration_min,
+    category: (params as any).category,
+    lat: params.lat,
+    lng: params.lng,
+  };
+  const query = new URLSearchParams(payload as Record<string, string>).toString();
+  const url = `${joinUrl(RECOMMEND_EP)}?${query}`;//デバック
+  console.debug("[recommendSpots] API_BASE=", API_BASE, "URL=", url, "payload=", payload);
+
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
+  }
+
+  const data: DetourSuggestion[] = await res.json();
+  const spots = data.map(toSpot);
+  return { spots };
+}
+
 
 // ===== 共通 GET / POST（履歴でも使用） =====
 export const apiGet = <T>(path: string, token?: string, init?: RequestInit) =>

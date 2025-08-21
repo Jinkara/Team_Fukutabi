@@ -2,8 +2,9 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/menu": "pages/menu.js",
-  "/detour": "pages/detour.js",
   "/": "pages/index.js",
-  "/detour-play": "pages/detour-play.js"
+  "/menu": "pages/menu.js",
+  "/login": "pages/login.js",
+  "/detour-play": "pages/detour-play.js",
+  "/detour": "pages/detour.js"
 }

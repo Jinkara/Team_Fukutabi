@@ -8,6 +8,7 @@ from app.db.database import get_db
 from app.db import models
 from app.schemas.destination_schema import DestinationCreate, DestinationRead
 from app.services import google_places as svc
+from fastapi.concurrency import run_in_threadpool #(byきたな)
 
 router = APIRouter(prefix="/destinations", tags=["destinations"])
 
@@ -19,7 +20,9 @@ def maybe_require_admin(x_api_key: str = Header(default="")):
     if ADMIN_API_KEY and x_api_key != ADMIN_API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
-
+# ---------------------------------------------------------------------
+# A) 完全同期: CRUD（DBのみ触る）byきたな
+# ---------------------------------------------------------------------
 @router.post("/", response_model=DestinationRead, dependencies=[Depends(maybe_require_admin)], status_code=201)
 def create_destination(payload: DestinationCreate, db: Session = Depends(get_db)):
     obj = models.Destination(
@@ -45,45 +48,6 @@ def create_destination(payload: DestinationCreate, db: Session = Depends(get_db)
         lat=obj.lat,
         lng=obj.lng,
     )
-
-# --------------- UX簡略化：place_id だけで登録する -------------------
-@router.post("/register", response_model=DestinationRead, dependencies=[Depends(maybe_require_admin)], status_code=201)
-async def register_from_place_id(
-    place_id: str = Query(..., description="Google Place ID"),
-    db: Session = Depends(get_db),
-):
-    """
-    place_id だけ受け取り、サーバー側で Places Details を取得して保存する。
-    フロントは details 結果を組み立てる必要なし。
-    """
-    data = await svc.details(place_id)
-    if not data or "geometry" not in data or "location" not in data["geometry"]:
-        raise HTTPException(status_code=404, detail="Place details not found")
-
-    obj = models.Destination(
-        place_id=data["place_id"],
-        name=data.get("name", ""),
-        address=data.get("formatted_address", ""),
-        lat=data["geometry"]["location"]["lat"],
-        lng=data["geometry"]["location"]["lng"],
-    )
-    db.add(obj)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        # 既に登録済み
-        raise HTTPException(status_code=409, detail="Destination already exists (place_id)")
-    db.refresh(obj)
-    return DestinationRead(
-        id=obj.id,
-        placeId=obj.place_id,
-        name=obj.name,
-        address=obj.address,
-        lat=obj.lat,
-        lng=obj.lng,
-    )
-
 # ------------------ 保存済み一覧（ページング対応） -------------------
 
 @router.get("/", response_model=List[DestinationRead])
@@ -104,3 +68,55 @@ def list_destinations(
         )
         for r in rows
     ]
+# ---------------------------------------------------------------------
+# B) 混在: 外部API(await) + DBはthreadpoolに退避byきたな
+# ---------------------------------------------------------------------
+
+# --------------- UX簡略化：place_id だけで登録する -------------------
+@router.post("/register", response_model=DestinationRead, dependencies=[Depends(maybe_require_admin)], status_code=201)
+async def register_from_place_id(
+    place_id: str = Query(..., description="Google Place ID"),
+    db: Session = Depends(get_db),
+):
+    """
+    place_id だけ受け取り、サーバー側で Places Details を取得して保存する。
+    フロントは details 結果を組み立てる必要なし。
+    """
+    # 1) 外部APIは非同期で取得（byきたな）
+    data = await svc.details(place_id)
+    if not data or "geometry" not in data or "location" not in data["geometry"]:
+        raise HTTPException(status_code=404, detail="Place details not found")
+    # 2) DB処理は threadpool へ（イベントループを塞がないbyきたな）
+    def _insert():
+        obj = models.Destination(
+            place_id=data["place_id"],
+            name=data.get("name", ""),
+            address=data.get("formatted_address", ""),
+            lat=data["geometry"]["location"]["lat"],
+            lng=data["geometry"]["location"]["lng"],
+        )
+        db.add(obj)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise #きたな追加
+        db.refresh(obj) #きたな追加
+        return obj #きたな追加
+
+    try:
+        obj = await run_in_threadpool(_insert) #きたな追加
+    except IntegrityError:
+        # 既に登録済み
+        raise HTTPException(status_code=409, detail="Destination already exists (place_id)") #きたな変更
+        
+        
+    return DestinationRead(
+        id=obj.id,
+        placeId=obj.place_id,
+        name=obj.name,
+        address=obj.address,
+        lat=obj.lat,
+        lng=obj.lng,
+    )
+
