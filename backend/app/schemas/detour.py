@@ -1,6 +1,5 @@
 # app/schemas/detour.py
-
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict  # 修正8/21: v2対応のためConfigDictを導入
 from typing import Literal, List, Optional
 
 # モードとタイプ（既存）
@@ -18,6 +17,8 @@ class DetourSearchQuery(BaseModel):
     exclude_ids: Optional[List[str]] = None
     seed: Optional[int] = None
     radius_m: Optional[int] = Field(default=1200, ge=100, le=10000)
+    local_only: bool = False   # 修正8/21: 「非チェーンのみ」抽出フラグ（外部API検索は行う）
+    history_only: bool = False  # 追加8/21: DB履歴のみを返す（オフライン/キャッシュ用）
 
 # 📍 検索結果スポット（レスポンス用）
 class DetourSuggestion(BaseModel):
@@ -32,13 +33,13 @@ class DetourSuggestion(BaseModel):
     open_now: Optional[bool] = None
     opening_hours: Optional[str] = None
     parking: Optional[str] = None         # "あり/なし/不明"
-    source: str                           # "google" | "hotpepper" | "connpass"
+    source: Literal["google", "hotpepper", "connpass", "yolp", "local"]  # 修正8/21: Literalに拡張（local対応）
     url: Optional[str] = None
     photo_url: Optional[str] = None
     created_at: Optional[str] = None      # DBの登録日時（レスポンス用）
 
-    class Config:
-        orm_mode = True
+    # Pydantic v2: ORMオブジェクトからの属性取り出しを許可
+    model_config = ConfigDict(from_attributes=True)  # 修正8/21
 
 # 🕓 履歴アイテム
 class DetourHistoryItem(BaseModel):
@@ -52,4 +53,4 @@ class DetourHistoryItem(BaseModel):
 
 # 🧾 推薦レスポンス（一覧形式）
 class RecommendResponse(BaseModel):
-    spots: List[DetourSuggestion]
+    spots: List[DetourSuggestion]  # 修正8/21
