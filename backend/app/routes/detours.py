@@ -1,7 +1,7 @@
 # backend/app/routes/detours.py
 from fastapi import APIRouter, Query, Depends, HTTPException
 from typing import List, Optional
-import math, uuid, re  # 追加8/21: チェーン判定のため re を使用
+import math, uuid, re, unicodedata  # 追加8/21: チェーン判定のため re を使用
 from datetime import datetime  # 追加8/21: created_at統一のため
 from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
@@ -31,6 +31,8 @@ _CHAIN_RE = re.compile(
 def _is_chain(name: str) -> bool:  # 追加8/21
     return bool(_CHAIN_RE.search(name or ""))
 
+def _eta_text(mode: str, minutes: int, meters: int) -> str:
+    return f"徒歩約{minutes}分・{meters}m" if mode == "walk" else f"車で約{minutes}分・{meters}m"
 # =========================
 # コア検索（純粋関数）
 # =========================
@@ -97,25 +99,40 @@ async def search_detours_core(query: DetourSearchQuery, db: Session) -> List[Det
             hp = await hotpepper_food(query.lat, query.lng, radius_m, query.categories)
             items.extend(hp)
 
+    elif (query.detour_type == "spot" or 
+        (isinstance(query.detour_type, DetourType) and query.detour_type == DetourType.spot)):  # ★追加
+        g = await google_nearby(
+            query.lat, query.lng, radius_m,
+            detour_type="spot",
+            categories=query.categories,
+        )
+        items.extend(g)
+
     elif query.detour_type == "event":
-        city = await reverse_geocode_city(query.lat, query.lng)
-        if city:
-            evs = await connpass_events(city)
-            out = []
-            for e in evs:
-                if e.get("lat") and e.get("lng"):
-                    d = haversine_km(query.lat, query.lng, float(e["lat"]), float(e["lng"]))
-                    if radius_km <= 0 or d <= radius_km * 1.5:
-                        e["distance_km"] = d
-                        e["duration_min"] = math.ceil(query.minutes * (d / radius_km)) if radius_km > 0 else query.minutes
-                        e["open_now"] = None
-                        e["rating"] = None
-                        e["parking"] = None
-                        e["photo_url"] = None
-                        e["opening_hours"] = e.get("opening_hours")
-                        e["source"] = e.get("source") or "connpass"
-                        out.append(e)
-            items.extend(out)
+        evs = await connpass_events(
+            lat=query.lat,
+            lng=query.lng,
+            minutes=query.minutes,
+            keyword=getattr(query, "keyword", None),
+            categories=getattr(query, "categories", None),
+            local_only=getattr(query, "local_only", False),
+            mode=(query.mode if isinstance(query.mode, str) else getattr(query.mode, "value", "walk")),
+        )
+        out = []
+        for e in evs:
+            if e.get("lat") and e.get("lng"):
+                d = haversine_km(query.lat, query.lng, float(e["lat"]), float(e["lng"]))
+                if radius_km <= 0 or d <= radius_km * 1.5:
+                    e["distance_km"] = d
+                    e["duration_min"] = math.ceil(query.minutes * (d / radius_km)) if radius_km > 0 else query.minutes
+                    e["open_now"] = None
+                    e["rating"] = None
+                    e["parking"] = None
+                    e["photo_url"] = None
+                    e["opening_hours"] = e.get("opening_hours")
+                    e["source"] = e.get("source") or "yolp"  # ← connpass → yolp に変更
+                    out.append(e)   
+        items.extend(out)  # ← ここ必須！
 
     # 距離/分の補完
     for x in items:
@@ -135,7 +152,11 @@ async def search_detours_core(query: DetourSearchQuery, db: Session) -> List[Det
     # DetourSuggestion に整形
     results: List[DetourSuggestion] = []
     now_iso = datetime.utcnow().isoformat()
+    mode_str = query.mode if isinstance(query.mode, str) else query.mode.value
+
     for x in top3:
+        meters = int(x["distance_km"] * 1000)
+
         results.append(
             DetourSuggestion(
                 id=str(uuid.uuid4()),
@@ -153,6 +174,8 @@ async def search_detours_core(query: DetourSearchQuery, db: Session) -> List[Det
                 url=x.get("url"),
                 photo_url=x.get("photo_url"),
                 created_at=now_iso,
+                eta_text=_eta_text(x["duration_min"], x["distance_km"], mode_str),
+                detour_type=query.detour_type,  # ← "food" | "souvenir" | "event" | ...
             )
         )
 
