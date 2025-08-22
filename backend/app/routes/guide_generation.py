@@ -1,15 +1,13 @@
-from app.core.auth import maybe_require_admin
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.db import models
 from app.schemas.guide_content import GuideCreate, GuideRead
 from app.services import gpt, tts
-from app.core.auth import maybe_require_admin
 
 router = APIRouter(prefix="/guides", tags=["guides"])
 
-@router.post("/", response_model=GuideRead, dependencies=[Depends(maybe_require_admin)], status_code=201)
+@router.post("/", response_model=GuideRead, status_code=201)
 async def create_guide(payload: GuideCreate, db: Session = Depends(get_db)):
     dest = db.get(models.Destination, payload.destinationId)
     if not dest:

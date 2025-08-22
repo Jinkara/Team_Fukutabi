@@ -1,4 +1,3 @@
-from app.core.auth import maybe_require_admin
 from fastapi import APIRouter, Depends, Query, HTTPException, Header
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -23,7 +22,7 @@ def maybe_require_admin(x_api_key: str = Header(default="")):
 # ---------------------------------------------------------------------
 # A) 完全同期: CRUD（DBのみ触る）byきたな
 # ---------------------------------------------------------------------
-@router.post("/", response_model=DestinationRead, dependencies=[Depends(maybe_require_admin)], status_code=201)
+@router.post("/", response_model=DestinationRead, status_code=201)
 def create_destination(payload: DestinationCreate, db: Session = Depends(get_db)):
     obj = models.Destination(
         place_id=payload.placeId,
@@ -73,7 +72,7 @@ def list_destinations(
 # ---------------------------------------------------------------------
 
 # --------------- UX簡略化：place_id だけで登録する -------------------
-@router.post("/register", response_model=DestinationRead, dependencies=[Depends(maybe_require_admin)], status_code=201)
+@router.post("/register", response_model=DestinationRead, status_code=201)
 async def register_from_place_id(
     place_id: str = Query(..., description="Google Place ID"),
     db: Session = Depends(get_db),

@@ -10,12 +10,6 @@ from app.schemas.visit_record import VisitCreate, VisitRead
 from app.schemas.guide_content import GuideRead
 from app.services import gpt, tts
 
-try:
-    from app.core.auth import maybe_require_admin
-    _deps = [Depends(maybe_require_admin)]
-except Exception:
-    _deps = []
-
 router = APIRouter(prefix="/visits", tags=["visits"])
 
 def _get_destination_by_any(db: Session, destination_id: Union[int, str]) -> Optional[models.Destination]:
@@ -23,7 +17,7 @@ def _get_destination_by_any(db: Session, destination_id: Union[int, str]) -> Opt
         return db.query(models.Destination).filter(models.Destination.id == destination_id).first()
     return db.query(models.Destination).filter(models.Destination.place_id == destination_id).first()
 
-@router.post("/", response_model=dict, status_code=201, dependencies=_deps)
+@router.post("/", response_model=dict, status_code=201)
 async def create_visit(payload: VisitCreate, db: Session = Depends(get_db)):
     # 1) 目的地取得
     dest = _get_destination_by_any(db, payload.destinationId)

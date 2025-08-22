@@ -6,13 +6,18 @@ import os
 env_path = pathlib.Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-# .env の変数から読み込み
+# .env の変数を取得
 cred_path_raw = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-cred_path_abs = pathlib.Path(cred_path_raw).resolve() if cred_path_raw else None
 
-# .env の値を優先して OS 環境変数に上書き
+# backend/ をベースにする（.envとsecretは同じ階層）
+base_dir = pathlib.Path(__file__).resolve().parent.parent
+cred_path_abs = (base_dir / cred_path_raw).resolve() if cred_path_raw else None
+
 if cred_path_raw:
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cred_path_abs)
+    print(f"★ cred_path (raw) >> {cred_path_raw}")
+    print(f"★ cred_path (absolute) >> {cred_path_abs}")
+    print(f"★ os.path.exists(cred_path) >> {os.path.exists(cred_path_abs)}")
 else:
     print("⚠️ .envに GOOGLE_APPLICATION_CREDENTIALS が定義されていません")
 from fastapi import FastAPI
