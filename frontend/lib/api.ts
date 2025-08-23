@@ -191,3 +191,17 @@ export function createGuideHistory(payload: CreateGuideHistoryInput, token?: str
   // 外部API前提。Next.js の /api ではなく、素の /guide-history にPOST
   return apiPost<CreateGuideHistoryResponse>("/guide-history", payload, token);
 }
+
+// lib/api.ts の末尾に追加（任意・保守性アップのため）　からちゃん追記
+
+export type RegisterUserInput = {
+  email: string;
+  password: string;
+  name: string;
+  gender: string;
+  age_group: string;
+};
+
+export function registerUser(payload: RegisterUserInput) {
+  return apiPost("/register", payload);
+}

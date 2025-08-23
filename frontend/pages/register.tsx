@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { registerUser } from "@/lib/api";  // からちゃん追加
 import Image from "next/image";
 import styles from "../styles/register.module.css";
 
@@ -14,13 +15,29 @@ export default function Register() {
   const [age, setAge] = useState("20代");
   const [agreed, setAgreed] = useState(false);
 
-  const handleRegister = () => {
-    if (!agreed) {
-      alert("利用規約に同意してください。");
-      return;
-    }
-    router.push("/menu");
-  };
+  // からちゃん追記（API連携部分）
+const handleRegister = async () => {
+  if (!agreed) {
+    alert("利用規約に同意してください。");
+    return;
+  }
+
+  try {
+    await registerUser({
+      email,
+      password,
+      name,
+      gender,
+      age_group: age,
+    });
+
+    alert("登録が完了しました！");
+    router.push("/login"); // ログインページに遷移
+  } catch (error: any) {
+    console.error(error);
+    alert(error.message || "登録に失敗しました");
+  }
+};
 
   const handleNavigateLogin = () => {
     router.push("/login");
