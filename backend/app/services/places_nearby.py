@@ -20,6 +20,14 @@ def _photo_url(ref: str, maxw: int = 800) -> str:
 TYPE_MAP = {
     "food": {"types": ["restaurant","cafe","bakery"], "keyword": None},
     "souvenir": {"types": ["souvenir_store","department_store","shopping_mall"], "keyword": None},
+    "spot": {  # ← 追加
+        "types": [
+            "tourist_attraction","national_park","museum","art_gallery",
+            "aquarium","zoo","amusement_park","campground","hiking_area","library",
+            "church","place_of_worship"
+        ],
+        "keyword": None
+    }
 }
 
 async def google_nearby(
