@@ -8,9 +8,37 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
+  // からちゃん追記（ログイン機能実装）
+  const handleLogin = async () => {
+  try {
+    const response = await fetch("http://localhost:8000/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      alert(errorData.detail || "ログインに失敗しました");
+      return;
+    }
+
+    const data = await response.json();
+    console.log("ログイン成功:", data);
+
+    // 必要に応じてuser_idなどを保存（例: localStorage）
+    localStorage.setItem("user_id", data.user_id);
+
+    // メニュー画面へ遷移
     router.push("/menu");
-  };
+  } catch (error) {
+    console.error("ログインエラー:", error);
+    alert("ログイン中にエラーが発生しました");
+  }
+};
+
 
   const handleNavigateRegister = () => {
     router.push("/register");

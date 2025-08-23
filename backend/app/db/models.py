@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Float, DateTime, func, UniqueConstraint, ForeignKey, Text
+from sqlalchemy import String, Float, DateTime, func, UniqueConstraint, ForeignKey, Text, Integer
 import uuid, datetime as dt
-
-
+from sqlalchemy import Column, Integer, String #からちゃん追加
+from sqlalchemy.ext.declarative import declarative_base #からちゃん追加
+Base = declarative_base() #からちゃん追加
 from app.db.database import Base   # ← ここが超重要：再定義せず共通Baseを使う
 
 class Destination(Base):
@@ -74,5 +75,15 @@ class DetourSuggestion(Base):
     url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False) 
+    name = Column(String(255)) 
+    gender = Column(String(10)) 
+    age_group = Column(String(50))  
 
 from app.models import detour_history  # ← これでテーブルがBaseに登録される
