@@ -66,11 +66,18 @@ async def search_detours_core(query: DetourSearchQuery, db: Session) -> List[Det
     # 半径の決定（優先: query.radius_m、なければ minutes→km から算出）
     if query.radius_m is not None:
         radius_m = int(query.radius_m)
-        radius_km = radius_m / 1000.0
+        radius_km_from_param = radius_m / 1000.0
     else:
-        radius_km = minutes_to_radius_km(query.minutes, query.mode)
-        radius_m = int(radius_km * 1000)
+        radius_km_from_param = None
+    # minutes 由来の半径
+    radius_km_from_minutes = minutes_to_radius_km(query.minutes, query.mode)
 
+    # イベントは minutes ベースを優先（= 広い方を採用）
+    if (getattr(query.detour_type, "value", str(query.detour_type)) == "event"):
+        radius_km = max(radius_km_from_minutes, radius_km_from_param or 0)
+    else:
+        radius_km = radius_km_from_param if radius_km_from_param is not None else radius_km_from_minutes
+    radius_m = int(radius_km * 1000)
     # -------------------------
     # history_only: DB（履歴）だけで返す
     # -------------------------
@@ -212,10 +219,10 @@ async def search_detours_core(query: DetourSearchQuery, db: Session) -> List[Det
         results.append(
             DetourSuggestion(
                 id=str(uuid.uuid4()),
-                name=x["name"],
+                name=_clean_shop_name(x["name"]),  # ついでに表示名も正規化
                 description=desc,  # ← 生成 or 取得した短文を反映
-                lat=x["lat"],
-                lng=x["lng"],
+                lat=float(x["lat"]),
+                lng=float(x["lng"]),
                 distance_km=x["distance_km"],
                 duration_min=x["duration_min"],
                 rating=x.get("rating"),

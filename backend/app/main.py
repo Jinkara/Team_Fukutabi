@@ -73,7 +73,7 @@ from fastapi.responses import HTMLResponse
 app.include_router(places_router)
 app.include_router(destinations_router)
 app.include_router(visits_router)
-app.include_router(detours_router, prefix="/detours")
+app.include_router(detours_router)
 app.include_router(user_login_api.router)
 
 # ヘルスチェック

@@ -71,10 +71,16 @@ async def google_nearby(
 
     for batch in batches:
         for r in batch:
+            try:
+                plat = float(r["geometry"]["location"]["lat"])
+                plng = float(r["geometry"]["location"]["lng"])
+            except Exception:
+                continue  # 座標が無ければ捨てる
+            
             results.append({
                 "name": r.get("name"),
-                "lat": r["geometry"]["location"]["lat"],
-                "lng": r["geometry"]["location"]["lng"],
+                "lat": plat,
+                "lng": plng,
                 "rating": r.get("rating"),
                 "open_now": r.get("opening_hours", {}).get("open_now") if r.get("opening_hours") else None,
                 "opening_hours": None,  # 詳細までは取らない（必要時に details 追撃）
