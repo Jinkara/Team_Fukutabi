@@ -127,3 +127,4 @@ async def register_from_place_id(
         lng=obj.lng,
     )
 
+
