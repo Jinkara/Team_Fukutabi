@@ -2,9 +2,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Float, DateTime, func, UniqueConstraint, ForeignKey, Text, Integer
 import uuid, datetime as dt
 from sqlalchemy import Column, Integer, String #からちゃん追加
-from sqlalchemy.ext.declarative import declarative_base #からちゃん追加
-Base = declarative_base() #からちゃん追加
+#from sqlalchemy.ext.declarative import declarative_base #からちゃん追加
+#Base = declarative_base() #からちゃん追加
 from app.db.database import Base   # ← ここが超重要：再定義せず共通Baseを使う
+
+# ✅ DetourSuggestion / SpotSummary は “本家” に集約
+from app.models.detour_suggestion import DetourSuggestion, SpotSummary
 
 class Destination(Base):
     __tablename__ = "destinations"
@@ -57,24 +60,24 @@ class Guide(Base):
     visit = relationship("VisitHistory", back_populates="guides")
 
 #models.DetourSuggestion の対応
-class DetourSuggestion(Base):
-    __tablename__ = "detour_suggestions"
+#class DetourSuggestion(Base):
+    #__tablename__ = "detour_suggestions"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    name: Mapped[str] = mapped_column(String(256))
-    description: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    lat: Mapped[float] = mapped_column(Float)
-    lng: Mapped[float] = mapped_column(Float)
-    distance_km: Mapped[float] = mapped_column(Float)
-    duration_min: Mapped[int] = mapped_column()
-    rating: Mapped[float | None] = mapped_column(Float, nullable=True)
-    open_now: Mapped[bool | None] = mapped_column(nullable=True)
-    opening_hours: Mapped[str | None] = mapped_column(String(256), nullable=True)
-    parking: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    source: Mapped[str] = mapped_column(String(32))  # e.g. 'google'
-    url: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    #id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    #name: Mapped[str] = mapped_column(String(256))
+    #description: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    #lat: Mapped[float] = mapped_column(Float)
+    #lng: Mapped[float] = mapped_column(Float)
+    #distance_km: Mapped[float] = mapped_column(Float)
+    #duration_min: Mapped[int] = mapped_column()
+    #rating: Mapped[float | None] = mapped_column(Float, nullable=True)
+    #open_now: Mapped[bool | None] = mapped_column(nullable=True)
+    #opening_hours: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    #parking: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #source: Mapped[str] = mapped_column(String(32))  # e.g. 'google'
+    #url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    #photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    #created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 class User(Base):
     __tablename__ = "users"
