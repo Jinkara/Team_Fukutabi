@@ -24,7 +24,7 @@ export default function Menu() {
         </section>
 
         {/* CTA：おしゃべりAI旅ガイド */}
-        <Link href="/guide" legacyBehavior>
+        <Link href="/destination" legacyBehavior>
           <a className={`${styles.cta} ${styles.red}`}>
             <span className={styles.iconWrap}>
               <svg className={styles.icon} viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
