@@ -38,6 +38,10 @@ from app.routes.detours import router as detours_router
 from app.routers import detour_adapter
 from app.routers import detour_guide
 
+# ★ 追加：ユーザールーターからちゃん
+from app.routes import user_register_api
+from app.routes import user_login_api
+
 # DB初期化（同期）
 from app.db.database import init_db
 
@@ -70,6 +74,7 @@ app.include_router(places_router)
 app.include_router(destinations_router)
 app.include_router(visits_router)
 app.include_router(detours_router, prefix="/detours")
+app.include_router(user_login_api.router)
 
 # ヘルスチェック
 @app.get("/health")
@@ -111,3 +116,4 @@ def __db_tables():
 # ★ 追加：ルータを登録きたな
 app.include_router(detour_adapter.router)  # → /detour/search が生える
 app.include_router(detour_guide.router)    # → /detour-guide/search が生える
+app.include_router(user_register_api.router)  # ★ 追加：ユーザールーター登録
