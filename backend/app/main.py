@@ -60,8 +60,9 @@ app.add_middleware(
 #Base.metadata.create_all(bind=engine)(一旦コメントアウトbyきたな)
 
 # 4) メディア配信（TTSのmp3 / フォールバックのtxt を返す用）
-app.mount("/media", StaticFiles(directory=os.getenv("MEDIA_ROOT", "./media")), name="media")
-
+# app.mount("/media", StaticFiles(directory=os.getenv("MEDIA_ROOT", "./media")), name="media")
+media_root = pathlib.Path(__file__).resolve().parent.parent / "media"
+app.mount("/media", StaticFiles(directory=media_root), name="media")
 # mps3 音声再生のテスト用エンドポイント ※実際の運用では不要、削除可能byからちゃん
 from fastapi.responses import HTMLResponse
 # メディア配信（ディレクトリが無いと起動エラーになるので作成しておくGPTおすすめbyきたな）

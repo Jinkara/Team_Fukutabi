@@ -81,11 +81,12 @@ async def register_from_place_id(
     place_id だけ受け取り、サーバー側で Places Details を取得して保存する。
     フロントは details 結果を組み立てる必要なし。
     """
-    # 1) 外部APIは非同期で取得（byきたな）
+    # 1) 外部APIは非同期で取得
     data = await svc.details(place_id)
     if not data or "geometry" not in data or "location" not in data["geometry"]:
         raise HTTPException(status_code=404, detail="Place details not found")
-    # 2) DB処理は threadpool へ（イベントループを塞がないbyきたな）
+
+    # 2) DB処理は threadpool に退避
     def _insert():
         obj = models.Destination(
             place_id=data["place_id"],
@@ -97,19 +98,17 @@ async def register_from_place_id(
         db.add(obj)
         try:
             db.commit()
+            db.refresh(obj)
         except IntegrityError:
             db.rollback()
-            raise #きたな追加
-        db.refresh(obj) #きたな追加
-        return obj #きたな追加
+            # ★ 既存のデータを探して返す
+            obj = db.query(models.Destination).filter_by(place_id=place_id).first()
+            if obj is None:
+                raise HTTPException(status_code=500, detail="Failed to insert and retrieve destination")
+        return obj
 
-    try:
-        obj = await run_in_threadpool(_insert) #きたな追加
-    except IntegrityError:
-        # 既に登録済み
-        raise HTTPException(status_code=409, detail="Destination already exists (place_id)") #きたな変更
-        
-        
+    obj = await run_in_threadpool(_insert)
+
     return DestinationRead(
         id=obj.id,
         placeId=obj.place_id,
@@ -118,4 +117,5 @@ async def register_from_place_id(
         lat=obj.lat,
         lng=obj.lng,
     )
+
 
