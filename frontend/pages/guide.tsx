@@ -33,11 +33,13 @@ export default function GuidePage() {
       setGuideText("ガイド生成中…");
 
       try {
+        const uid =
+          typeof window !== "undefined" ? window.localStorage.getItem("userId") : null;
         // Next 側の中継APIへ POST（バックエンドの /visits/ へ転送）
         const res = await fetch(`/api/visits/register?place_id=${encodeURIComponent(placeId)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: null }), // 必要なら実ユーザーIDに
+          body: JSON.stringify({ userId: uid }), // 必要なら実ユーザーIDに
         });
 
         const data = await res.json().catch(() => ({}));
