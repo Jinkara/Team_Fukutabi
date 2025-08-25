@@ -1,9 +1,8 @@
 // pages/detour-play.tsx
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Layout from "../components/Layout";
-//import Guard from "../components/Guard";
 import styles from "../styles/DetourPlay.module.css";
 
 import {
@@ -12,16 +11,52 @@ import {
   type Category,
   type Mode,
   type Dur,
-  normalizeSpot, // ★ 追加：api.ts の normalizeSpot を使う
+  normalizeSpot,
 } from "../lib/api";
 import { loadProfile } from "../lib/auth";
 import { colorNameByCategory, fmtDistance, fmtEta } from "../lib/places";
-import { DetourSuggestion } from "@/types";
+
+import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+const AnyMapContainer =
+  MapContainer as unknown as React.ComponentType<Record<string, any>>;
+const AnyCircle =
+  Circle as unknown as React.ComponentType<Record<string, any>>;
+const AnyCircleMarker =
+  CircleMarker as unknown as React.ComponentType<Record<string, any>>;
+
+const createColoredIcon = (color: "red" | "green" | "blue") =>
+  new L.Icon({
+    iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+    shadowUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
+
+const iconByCategory: Record<string, L.Icon> = {
+  local: createColoredIcon("red"),
+  gourmet: createColoredIcon("green"),
+  event: createColoredIcon("blue"),
+};
 
 export default function DetourPlay() {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    });
+  }, []);
 
-  // detour の条件（クエリから）
   const mode: Mode | null = useMemo(() => {
     const m = String(router.query.mode || "");
     return m === "walk" || m === "drive" ? (m as Mode) : null;
@@ -34,24 +69,71 @@ export default function DetourPlay() {
 
   const selectedCategory: Category | null = useMemo(() => {
     const c = String(router.query.category || "");
-    return c === "local" || c === "gourmet" || c === "event" ? (c as Category) : null;
+    return c === "local" || c === "gourmet" || c === "event"
+      ? (c as Category)
+      : null;
   }, [router.query.category]);
 
   const profile = useMemo(() => loadProfile(), []);
 
-  // 表示用
-  const [spots, setSpots] = useState<Spot[]>([]); // Spot[] に統一
+  const [spots, setSpots] = useState<Spot[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 再検索管理
   const [excludeIds, setExcludeIds] = useState<string[]>([]);
-  const baseRadiusRef = useRef<number>(1200); // 初期半径(m)
+  const baseRadiusRef = useRef<number>(1200);
   const [radius, setRadius] = useState<number>(baseRadiusRef.current);
 
-  // 単一ボタンの「次の挙動」決定用
   const [attempts, setAttempts] = useState(0);
-  const nextWillWiden = (!spots || spots.length < 3) || (attempts % 2 === 1);
+  const nextWillWiden = !spots || spots.length < 3 || attempts % 2 === 1;
+
+  const initialCenter: [number, number] = [
+    Number(router.query.lat ?? 35.681236),
+    Number(router.query.lng ?? 139.767125),
+  ];
+  const [mapCenter, setMapCenter] = useState<[number, number]>(initialCenter);
+  const centeredOnceRef = useRef(false);
+
+  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [userAccuracy, setUserAccuracy] = useState<number | null>(null);
+  const AnyMarker =
+    Marker as unknown as React.ComponentType<Record<string, any>>;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setUserPos({ lat, lng });
+        setUserAccuracy(pos.coords.accuracy ?? null);
+        if (!centeredOnceRef.current) {
+          setMapCenter([lat, lng]);
+          centeredOnceRef.current = true;
+        }
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+    );
+
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setUserPos({ lat, lng });
+        setUserAccuracy(pos.coords.accuracy ?? null);
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+
+    return () => {
+      if (navigator.geolocation && id) {
+        navigator.geolocation.clearWatch(id);
+      }
+    };
+  }, []);
 
   const speak = (text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -63,19 +145,19 @@ export default function DetourPlay() {
     } catch {}
   };
 
+  console.log("[detour-play] selectedCategory =", selectedCategory);
+
   async function fetchOnce(opts?: { widen?: boolean }) {
     if (!mode || !duration) return;
     setLoading(true);
     setErrorMsg(null);
 
     try {
-      // state の spots と被らないよう rawSpots にリネーム
       const { spots: rawSpots } = await recommendSpots({
         mode,
-        duration: duration,                       // ← サーバは minutes を期待
-        category: selectedCategory ?? undefined, // ← null を送らない
-        //user: profile ? { gender: profile.gender, age_range: profile.ageRange } : null,
-        exclude_ids: excludeIds.join(","), // ここは文字列でOK
+        duration: duration,
+        category: selectedCategory ?? undefined,
+        exclude_ids: excludeIds.join(","),
         seed: Math.floor(Math.random() * 1e6),
         radius_m: opts?.widen ? radius + 500 : radius,
         lat: String(router.query.lat ?? "35.681236"),
@@ -84,49 +166,54 @@ export default function DetourPlay() {
 
       if (opts?.widen) setRadius((r) => r + 500);
 
-      // ★ ここで正規化：any/DetourSuggestion/Spot どれでも normalizeSpot が Spot に整形
       const normalized: Spot[] = (rawSpots as any[]).map(normalizeSpot);
       setSpots(normalized);
       setExcludeIds((ids) => [...ids, ...normalized.map((s) => s.id)]);
     } catch (e: any) {
-      setErrorMsg(`接続できませんでした: ${e?.message ?? e}.サンプルデータを表示しています。`);
+      setErrorMsg(
+        `接続できませんでした: ${e?.message ?? e}. サンプルデータを表示しています。`
+      );
 
-      // 簡易モック（DetourSuggestion 形）
       const mock = [
         {
           id: "1",
           name: "喫茶店カフェ Serendipity",
           description: "老舗の自家焙煎コーヒーが自慢の隠れ家カフェ。",
-          lat: 0,
-          lng: 0,
+          lat: 35.681236,
+          lng: 139.767125,
           distance_km: 0.35,
           duration_min: 15,
           source: "google",
+          created_at: new Date().toISOString(),
+          photo_url: "/placeholders/spot.png", // 追加しておくと見栄えが安定
         },
         {
           id: "2",
           name: "アンティーク雑貨店",
           description: "ヨーロッパから直輸入した家具や食器が並ぶ注目雑貨店。",
-          lat: 0,
-          lng: 0,
+          lat: 35.681236,
+          lng: 139.767125,
           distance_km: 0.65,
           duration_min: 8,
           source: "google",
+          created_at: new Date().toISOString(),
+          photo_url: "/placeholders/spot.png",
         },
         {
           id: "3",
           name: "小さなアートギャラリー",
           description: "若手作家の企画展を展示するギャラリーです。",
-          lat: 0,
-          lng: 0,
+          lat: 35.681236,
+          lng: 139.767125,
           distance_km: 0.45,
           duration_min: 9,
           source: "google",
+          created_at: new Date().toISOString(),
+          photo_url: "/placeholders/spot.png",
         },
       ];
 
-      // ★ モックも同じく正規化して Spot[] へ
-      const fallback: Spot[] = mock.map(normalizeSpot as (x: any) => Spot);
+      const fallback: Spot[] = (mock as any[]).map(normalizeSpot);
       setSpots(fallback);
       setExcludeIds((ids) => [...ids, ...fallback.map((s) => s.id)]);
     } finally {
@@ -134,23 +221,21 @@ export default function DetourPlay() {
     }
   }
 
-  // 初回フェッチ
   useEffect(() => {
     if (!router.isReady) return;
     fetchOnce();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 
-  // 単一ボタン
   const onPrimaryClick = () => {
     fetchOnce({ widen: nextWillWiden });
     setAttempts((a) => a + 1);
   };
 
   const colorClass = (cat: Category) => styles[colorNameByCategory(cat)];
+  const imgFallback = "/placeholders/spot.png"; // ★ フォールバック
 
   return (
-    //<Guard>
     <Layout title="寄り道ガイド">
       <main className={styles.page}>
         <div className={styles.topbar}>
@@ -164,9 +249,50 @@ export default function DetourPlay() {
           <p className={styles.subtitle}>おすすめスポットをピックアップしました</p>
         </section>
 
-        {/* マップ（プレースホルダ） */}
         <section className={styles.mapBox}>
-          <div className={styles.mapPlaceholder}>マップエリア（地図が表示される）</div>
+          {isClient ? (
+            <AnyMapContainer
+              center={mapCenter}
+              zoom={14}
+              style={{ height: "260px", width: "100%" }}
+            >
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+              {userPos && (
+                <>
+                  {typeof userAccuracy === "number" && (
+                    <AnyCircle
+                      center={[userPos.lat, userPos.lng]}
+                      radius={Math.min(Math.max(userAccuracy, 20), 200)}
+                      pathOptions={{ color: "#3388ff", opacity: 0.6, fillOpacity: 0.15 }}
+                    />
+                  )}
+                  <AnyCircleMarker
+                    center={[userPos.lat, userPos.lng]}
+                    radius={6}
+                    pathOptions={{ color: "#1e90ff", fillOpacity: 1 }}
+                  />
+                </>
+              )}
+
+              {spots.map((s) => (
+                <AnyMarker
+                  key={s.id}
+                  position={[s.lat, s.lng]}
+                  icon={iconByCategory[s.category] ?? iconByCategory["local"]}
+                >
+                  <Popup>
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{s.name}</div>
+                    <div style={{ fontSize: 12 }}>
+                      {fmtEta(s.eta_min, mode || "walk")}・{fmtDistance(s.distance_m)}
+                    </div>
+                  </Popup>
+                </AnyMarker>
+              ))}
+            </AnyMapContainer>
+          ) : (
+            <div className={styles.mapPlaceholder}>地図を読み込み中…</div>
+          )}
           <div className={styles.legend}>
             <span className={`${styles.dot} ${styles.red}`} />
             <span>ローカル名所</span>
@@ -192,9 +318,23 @@ export default function DetourPlay() {
           {!loading &&
             spots?.map((s) => (
               <article key={s.id} className={styles.card}>
-                <div className={`${styles.cardIcon} ${colorClass(s.category)}`}>
-                  {s.category === "local" ? "📍" : s.category === "gourmet" ? "🍜" : "📅"}
+                {/* 画像（16:9固定）＋ 左上にカテゴリアイコン */}
+                <div className={styles.cardImage}>
+                  <img
+                    src={s.photo_url || imgFallback}
+                    alt={s.name}
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = imgFallback;
+                    }}
+                    className={styles.cardImg}
+                  />
+                  <div className={styles.cardChip}>
+                    {s.category === "local" ? "📍" : s.category === "gourmet" ? "🍜" : "📅"}
+                  </div>
                 </div>
+
+                {/* 本文 */}
                 <div className={styles.cardBody}>
                   <div className={styles.cardHeader}>
                     <h3 className={styles.cardTitle}>{s.name}</h3>
@@ -209,7 +349,7 @@ export default function DetourPlay() {
                     className={`${styles.voiceBtn} ${colorClass(s.category)}`}
                     onClick={() =>
                       speak(
-                        `${s.name}。${s.genre}。${s.desc}。${
+                        `${s.name}。${s.genre ?? ""}。${s.desc ?? ""}。${
                           mode === "drive" ? "車" : "徒歩"
                         }で約${s.eta_min}分、距離は約${Math.round(s.distance_m)}メートルです。`
                       )
@@ -221,25 +361,13 @@ export default function DetourPlay() {
               </article>
             ))}
 
-          {/* 空状態（説明のみ。ボタンはフッターに1つだけ） */}
           {!loading && (!spots || spots.length === 0) && (
             <div className={styles.empty}>
-              条件に合うスポットが見つかりませんでした。検索条件を少し緩めて再検索します。
+              条件に合うスポットが見つかりませんでした。条件を変更して検索してください。
             </div>
           )}
         </section>
-
-        {/* 単一ボタン + 次の挙動ヒント */}
-        <div className={styles.footer}>
-          <button className={styles.moreBtn} onClick={onPrimaryClick} disabled={loading}>
-            {loading ? "読み込み中…" : "＋ 新しいスポットを探す"}
-          </button>
-          {!loading && nextWillWiden && (
-            <div className={styles.nextHint}>次は半径を広げて探します（+500m）</div>
-          )}
-        </div>
       </main>
     </Layout>
-    //</Guard>
   );
 }

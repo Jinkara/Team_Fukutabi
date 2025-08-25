@@ -1,11 +1,25 @@
 // lib/api.ts
-import { DetourSuggestion } from "@/types";//きたな
+import { DetourSuggestion } from "@/types";
+
+// ===== API ベースURL =====
+// 推奨: .env.local に NEXT_PUBLIC_API_BASE_URL を設定
+export const API_BASE =
+  (process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_API_BASE ||
+    "http://127.0.0.1:8000").replace(/\/+$/, "");
 
 // ===== 型 =====
 export type Mode = "walk" | "drive";
 export type Category = "local" | "gourmet" | "event";
 export type Dur = 15 | 30 | 45 | 60;
-export type AgeRange = "10s" | "20s" | "30s" | "40s" | "50s" | "60sPlus" | string;
+export type AgeRange =
+  | "10s"
+  | "20s"
+  | "30s"
+  | "40s"
+  | "50s"
+  | "60sPlus"
+  | string;
 export type Gender = "male" | "female" | "other" | string;
 
 export type RecommendRequest = {
@@ -25,24 +39,50 @@ export type Spot = {
   desc: string;
   lat: number;
   lng: number;
-  eta_min: number;     // 分
-  distance_m: number;  // m
+  eta_min: number; // 分
+  distance_m: number; // m
   category: Category;
+  photo_url?: string;
 };
 
 export type RecommendResponse = { spots: Spot[] };
 
-// ===== 環境変数 =====
-// 推奨: .env.local に NEXT_PUBLIC_API_BASE_URL を設定（例: https://api.staging.serendigo.example）
-export const API_BASE =
-  (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE || "")
-    .replace(/\/+$/, ""); // 末尾スラ除去
+// フロントからバックに渡すパラメータ型
+export type RecommendParams = {
+  mode: Mode;
+  duration: number; // 分
+  category?: Category;
+  exclude_ids?: string;
+  seed?: number;
+  radius_m?: number;
+  lat: string;
+  lng: string;
+  local_only?: boolean;
+};
 
+// ===== detour_type ↔ category 変換 =====
+function toDetourType(cat?: Category): "spot" | "food" | "event" | "souvenir" | null {
+  switch (cat) {
+    case "gourmet": return "food";
+    case "event":   return "event";
+    case "local":   return "spot";
+    default:        return null;   // ← ここを null に
+  }
+}
+
+function detourTypeToCategory(detourType: any): Category {
+  const dt = String(detourType ?? "").toLowerCase();
+  if (dt === "food") return "gourmet";
+  if (dt === "event") return "event";
+  return "local";
+}
+
+// ===== HTTP 基盤 =====
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 function joinUrl(path: string) {
-  if (/^https?:\/\//i.test(path)) return path;               // すでに絶対URL
-  return `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`; // BASE + 相対
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
 async function request<T>(
@@ -52,7 +92,7 @@ async function request<T>(
   body?: any,
   init?: RequestInit
 ): Promise<T> {
-  const url = API_BASE ? joinUrl(path) : path; // BASE未設定なら同一オリジン相対
+  const url = API_BASE ? joinUrl(path) : path;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -70,29 +110,50 @@ async function request<T>(
     const text = await res.text().catch(() => "");
     throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
   }
-  // 空ボディの可能性がなければ JSON で返す
   return (await res.json()) as T;
 }
 
-const apiGetRaw = <T>(path: string, token?: string, init?: RequestInit) =>
-  request<T>("GET", path, token, undefined, init);
-const apiPostRaw = <T>(path: string, body: any, token?: string, init?: RequestInit) =>
-  request<T>("POST", path, token, body, init);
+const apiGetRaw = <T>(
+  path: string,
+  token?: string,
+  init?: RequestInit
+) => request<T>("GET", path, token, undefined, init);
+const apiPostRaw = <T>(
+  path: string,
+  body: any,
+  token?: string,
+  init?: RequestInit
+) => request<T>("POST", path, token, body, init);
 
-// ====== recommend: POST /detour/recommend ======
-const RECOMMEND_EP = "/detour/search"; //きたな
-
-// サーバーのキー揺れを吸収（きたな）
+// ===== Spot 正規化 =====
 export function normalizeSpot(raw: any): Spot {
-  const meters =
+  // ★ 追加：サーバの photo_url / image_url、camelCase でも拾う
+  const photo =
+    raw.photo_url ??
+    raw.image_url ??
+    raw.photoUrl ??
+    raw.imageUrl;
+
+  const distance_m =
     typeof raw.distance_m === "number"
       ? raw.distance_m
       : typeof raw.distance_km === "number"
       ? Math.round(raw.distance_km * 1000)
       : Number(raw.distance ?? 0);
 
-  const cat = (raw.category ?? raw.cat) as Category;
-  const category: Category = cat === "gourmet" ? "gourmet" : cat === "event" ? "event" : "local";
+  const eta_min =
+    typeof raw.eta_min === "number"
+      ? raw.eta_min
+      : typeof raw.duration_min === "number"
+      ? raw.duration_min
+      : 0;
+
+      // ★ detour_type / detourType 両方を考慮
+  const detourTypeRaw = raw.detour_type ?? raw.detourType;
+  const category: Category =
+    raw.category != null
+      ? (raw.category as Category)
+      : detourTypeToCategory(detourTypeRaw);
 
   return {
     id: String(raw.id ?? raw.spot_id ?? ""),
@@ -101,15 +162,17 @@ export function normalizeSpot(raw: any): Spot {
     desc: String(raw.desc ?? raw.description ?? ""),
     lat: Number(raw.lat ?? raw.latitude ?? 0),
     lng: Number(raw.lng ?? raw.longitude ?? 0),
-    eta_min: Number(raw.eta_min ?? raw.eta ?? 0),
-    distance_m: meters,
+    eta_min,
+    distance_m,
     category,
+        // ★ 追加
+    photo_url: typeof photo === "string" ? photo : undefined,
   };
 }
-// DetourSuggestion → Spot 変換（型揃え）きたな
+
+// DetourSuggestion → Spot 変換（互換用）
 function toSpot(s: DetourSuggestion): Spot {
-  // eta_text から分数と距離(m)を抽出
-  const etaText = (s as any).eta_text as string | undefined; // "徒歩約9分・350m" 等
+  const etaText = (s as any).eta_text as string | undefined;
   const minMatch = etaText?.match(/(\d+)\s*分/);
   const meterMatch = etaText?.match(/(\d+)\s*m/);
   const etaMinFromText = minMatch ? Number(minMatch[1]) : undefined;
@@ -138,48 +201,76 @@ function toSpot(s: DetourSuggestion): Spot {
   };
 }
 
-// ====== recommendSpots: GET /detour-guide/search ======きたな修正
-
+// ===== recommendSpots: GET /detour/search =====
 export async function recommendSpots(
-  params: Record<string, string | number>
-): Promise<{ spots: Spot[] }> {
-  const payload: Record<string, string | number | undefined> = {
-    mode: params.mode,
-    duration: (params as any).duration ?? (params as any).minutes ?? (params as any).duration_min,
-    category: (params as any).category,
+  params: RecommendParams
+): Promise<{ spots: DetourSuggestion[] }> {
+  const detour_type = toDetourType(params.category);
+
+  // 🔎 ここで中身を確認（コンソールに出ます）
+  //console.log("[recommendSpots] params.category =", params.category);
+  //console.log("[recommendSpots] detour_type     =", detour_type);
+
+
+  const q = new URLSearchParams({
     lat: params.lat,
     lng: params.lng,
-  };
-  const query = new URLSearchParams(payload as Record<string, string>).toString();
-  const url = `${joinUrl(RECOMMEND_EP)}?${query}`;//デバック
-  console.debug("[recommendSpots] API_BASE=", API_BASE, "URL=", url, "payload=", payload);
+    mode: params.mode,
+    minutes: String(params.duration),
+    local_only: String(params.local_only ?? false),
+  });
 
-  const res = await fetch(url);
+  // ★ truthy のときだけセット
+  if (detour_type) q.set("detour_type", detour_type);
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
+  if (params.seed != null) q.set("seed", String(params.seed));
+  if (detour_type !== "event" && params.radius_m != null) {
+    q.set("radius_m", String(params.radius_m));
+  }
+  if (params.exclude_ids) {
+    for (const id of params.exclude_ids
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)) {
+      q.append("exclude_ids", id);
+    }
   }
 
-  const data: DetourSuggestion[] = await res.json();
-  const spots = data.map(toSpot);
-  return { spots };
+    // ★ ここを追加：距離のみ表示を強制
+  q.set("distance_only", "true");
+
+  const url = `${API_BASE}/detour/search?${q.toString()}`;
+  //console.log("[recommendSpots] GET", url); // ← 送っている最終URLを出力
+
+  const res = await fetch(url, { method: "GET" });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
+  }
+  const data = (await res.json()) as DetourSuggestion[];
+  return { spots: data };
 }
 
+// ===== 共通 GET / POST =====
+export const apiGet = <T>(
+  path: string,
+  token?: string,
+  init?: RequestInit
+) => apiGetRaw<T>(path, token, init);
+export const apiPost = <T>(
+  path: string,
+  body: any,
+  token?: string,
+  init?: RequestInit
+) => apiPostRaw<T>(path, body, token, init);
 
-// ===== 共通 GET / POST（履歴でも使用） =====
-export const apiGet = <T>(path: string, token?: string, init?: RequestInit) =>
-  apiGetRaw<T>(path, token, init);
-export const apiPost = <T>(path: string, body: any, token?: string, init?: RequestInit) =>
-  apiPostRaw<T>(path, body, token, init);
-
-// ===== 履歴作成 API: POST /guide-history =====
+// ===== 履歴作成 API =====
 export type CreateGuideHistoryInput = {
   guide_type: "detour" | "talk";
   title: string;
   subtitle?: string;
   description?: string;
-  started_at: string;           // ISO8601
+  started_at: string;
   duration_min?: number;
   spots_count?: number;
   spots?: Array<{ id: string; name: string; category: Category }>;
@@ -187,13 +278,14 @@ export type CreateGuideHistoryInput = {
 };
 export type CreateGuideHistoryResponse = { id: number };
 
-export function createGuideHistory(payload: CreateGuideHistoryInput, token?: string) {
-  // 外部API前提。Next.js の /api ではなく、素の /guide-history にPOST
+export function createGuideHistory(
+  payload: CreateGuideHistoryInput,
+  token?: string
+) {
   return apiPost<CreateGuideHistoryResponse>("/guide-history", payload, token);
 }
 
-// lib/api.ts の末尾に追加（任意・保守性アップのため）　からちゃん追記
-
+// ===== ユーザ登録 API =====
 export type RegisterUserInput = {
   email: string;
   password: string;
