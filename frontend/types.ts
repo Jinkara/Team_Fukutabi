@@ -23,3 +23,19 @@ export type DetourSuggestion = {
 　distance_m: number;
 
 };
+
+export type Spot = {
+    id: string;
+    name: string;
+    lat: number;
+    lng: number;
+    distance_m: number;
+    eta_min: number;
+    category: "local" | "gourmet" | "event";
+    genre?: string;
+    desc?: string;
+    created_at?: string;
+
+    // ★ 追加：画像URL（バックエンドの photo_url / image_url をここに集約）
+    photo_url?: string;
+};
