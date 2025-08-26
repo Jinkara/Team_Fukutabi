@@ -269,9 +269,6 @@ export default function DetourPlay() {
           <Link href="/detour" legacyBehavior>
             <a className={styles.backLink}>← 条件へ戻る</a>
           </Link>
-          <button className={styles.primaryBtn} onClick={onPrimaryClick}>
-            別の候補を探す
-          </button>
         </div>
 
         <section className={styles.hero}>
