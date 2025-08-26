@@ -8,45 +8,48 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // からちゃん追記（ログイン機能実装）
   const handleLogin = async () => {
-  try {
-    const response = await fetch("http://localhost:8000/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      // next.config.js の /api → 8000 リライト経由でバックエンドへ
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      alert(errorData.detail || "ログインに失敗しました");
-      return;
+      // レスポンス本文は最初に読んでおく
+      const data = await res.json().catch(() => ({} as any));
+
+      if (!res.ok) {
+        alert(data?.detail || "ログインに失敗しました");
+        return;
+      }
+
+      // バックエンドの戻り値の型ゆれに対応（id or user_id）
+      const uid = String(data.id ?? data.user_id ?? "");
+      if (!uid) {
+        alert("ユーザーIDを取得できませんでした");
+        return;
+      }
+
+      // 以降の画面が参照するキー名で保存（"userId" に統一）
+      localStorage.setItem("userId", uid);
+      if (data.name) localStorage.setItem("userName", String(data.name));
+
+      router.push("/menu");
+    } catch (err) {
+      console.error("ログインエラー:", err);
+      alert("ログイン中にエラーが発生しました");
     }
-
-    const data = await response.json();
-    console.log("ログイン成功:", data);
-
-    // 必要に応じてuser_idなどを保存（例: localStorage）
-    localStorage.setItem("user_id", data.user_id);
-
-    // メニュー画面へ遷移
-    router.push("/menu");
-  } catch (error) {
-    console.error("ログインエラー:", error);
-    alert("ログイン中にエラーが発生しました");
-  }
-};
-
-
-  const handleNavigateRegister = () => {
-    router.push("/register");
   };
+
+  const handleNavigateRegister = () => router.push("/register");
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.logo}>Serendi<span>Go</span></h1>
+      <h1 className={styles.logo}>
+        Serendi<span>Go</span>
+      </h1>
       <p className={styles.caption}>素敵な旅の続きへ始めましょう</p>
 
       <div className={styles.form}>

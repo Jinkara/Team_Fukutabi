@@ -9,7 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+<<<<<<< HEAD
     "leaflet": "^1.9.4",
+=======
+    "axios": "^1.11.0",
+>>>>>>> 4b30bb3b45b0d1c548d03e4fa36585923dd8dd50
     "next": "14.2.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",

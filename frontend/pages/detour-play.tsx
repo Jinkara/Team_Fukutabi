@@ -6,7 +6,7 @@ import Layout from "../components/Layout";
 import styles from "../styles/DetourPlay.module.css";
 
 import {
-  recommendSpots,
+  // recommendSpots,  // ← 使わない
   type Spot,
   type Category,
   type Mode,
@@ -42,6 +42,15 @@ const iconByCategory: Record<string, L.Icon> = {
   local: createColoredIcon("red"),
   gourmet: createColoredIcon("green"),
   event: createColoredIcon("blue"),
+};
+
+// === 変換: フロントの category → バックの detour_type ===
+const toDetourType = (category: string): "food" | "event" | "spot" | "souvenir" => {
+  const c = (category || "").toLowerCase();
+  if (c === "gourmet" || c === "food") return "food";
+  if (c === "event") return "event";
+  if (c === "local" || c === "attraction" || c === "sight" || c === "local_spot") return "spot";
+  return "souvenir";
 };
 
 export default function DetourPlay() {
@@ -147,22 +156,40 @@ export default function DetourPlay() {
 
   console.log("[detour-play] selectedCategory =", selectedCategory);
 
+  // ---- ここが肝心：API を minutes / detour_type で叩く ----
   async function fetchOnce(opts?: { widen?: boolean }) {
     if (!mode || !duration) return;
     setLoading(true);
     setErrorMsg(null);
 
     try {
-      const { spots: rawSpots } = await recommendSpots({
-        mode,
-        duration: duration,
-        category: selectedCategory ?? undefined,
-        exclude_ids: excludeIds.join(","),
-        seed: Math.floor(Math.random() * 1e6),
-        radius_m: opts?.widen ? radius + 500 : radius,
-        lat: String(router.query.lat ?? "35.681236"),
-        lng: String(router.query.lng ?? "139.767125"),
+      const detourType = toDetourType(selectedCategory ?? "gourmet"); // 'gourmet'→'food' 等に変換
+      const url = new URL("https://app-002-gen10-step3-2-py-oshima9.azurewebsites.net/detour/search");
+      url.searchParams.set("mode", mode);                         // 'drive' | 'walk'
+      url.searchParams.set("minutes", String(duration));          // ★ duration → minutes
+      url.searchParams.set("detour_type", detourType);            // ★ category → detour_type
+      url.searchParams.set("lat", String(router.query.lat ?? "35.681236"));
+      url.searchParams.set("lng", String(router.query.lng ?? "139.767125"));
+
+      // 既存の挙動を踏襲（任意パラメータ）
+      const widenedRadius = opts?.widen ? radius + 500 : radius;
+      url.searchParams.set("radius_m", String(widenedRadius));
+      if (excludeIds.length > 0) {
+        for (const id of excludeIds) url.searchParams.append("exclude_ids", id);
+      }
+      url.searchParams.set("seed", String(Math.floor(Math.random() * 1e6)));
+
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        credentials: "include",
       });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Fetch failed: ${res.status} ${res.statusText}\n${text}`);
+      }
+
+      const rawSpots = await res.json();
 
       if (opts?.widen) setRadius((r) => r + 500);
 
@@ -185,7 +212,7 @@ export default function DetourPlay() {
           duration_min: 15,
           source: "google",
           created_at: new Date().toISOString(),
-          photo_url: "/placeholders/spot.png", // 追加しておくと見栄えが安定
+          photo_url: "/placeholders/spot.png",
         },
         {
           id: "2",
@@ -233,7 +260,7 @@ export default function DetourPlay() {
   };
 
   const colorClass = (cat: Category) => styles[colorNameByCategory(cat)];
-  const imgFallback = "/placeholders/spot.png"; // ★ フォールバック
+  const imgFallback = "/placeholders/spot.png";
 
   return (
     <Layout title="寄り道ガイド">
@@ -242,6 +269,9 @@ export default function DetourPlay() {
           <Link href="/detour" legacyBehavior>
             <a className={styles.backLink}>← 条件へ戻る</a>
           </Link>
+          <button className={styles.primaryBtn} onClick={onPrimaryClick}>
+            別の候補を探す
+          </button>
         </div>
 
         <section className={styles.hero}>

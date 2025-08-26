@@ -97,19 +97,27 @@ async def register_from_place_id(
         db.add(obj)
         try:
             db.commit()
+            db.refresh(obj)
         except IntegrityError:
             db.rollback()
-            raise #きたな追加
-        db.refresh(obj) #きたな追加
-        return obj #きたな追加
+    #         raise #きたな追加
+    #     db.refresh(obj) #きたな追加
+    #     return obj #きたな追加
 
-    try:
-        obj = await run_in_threadpool(_insert) #きたな追加
-    except IntegrityError:
-        # 既に登録済み
-        raise HTTPException(status_code=409, detail="Destination already exists (place_id)") #きたな変更
-        
-        
+    # try:
+    #     obj = await run_in_threadpool(_insert) #きたな追加
+    # except IntegrityError:
+    #     # 既に登録済み
+    #     raise HTTPException(status_code=409, detail="Destination already exists (place_id)") #きたな変更
+# 以下コードに変更（IntegrityErrorをキャッチして既存データを返すように）
+            # ★ 既存のデータを探して返す
+            obj = db.query(models.Destination).filter_by(place_id=place_id).first()
+            if obj is None:
+                raise HTTPException(status_code=500, detail="Failed to insert and retrieve destination")
+        return obj
+
+    obj = await run_in_threadpool(_insert)
+
     return DestinationRead(
         id=obj.id,
         placeId=obj.place_id,
@@ -118,4 +126,5 @@ async def register_from_place_id(
         lat=obj.lat,
         lng=obj.lng,
     )
+
 
